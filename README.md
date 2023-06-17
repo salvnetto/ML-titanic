@@ -1,3 +1,5 @@
+[Ver Projeto](https://salvnetto.github.io/ML-titanic/main.html)
+
 # Prevendo sobreviventes do Titanic
 
 Este projeto é parte de uma mentoria oferecida pelo setor de projetos da empresa júnior de estatística da UFMG 'EstatMH'. Nesse programa, ex-membros veteranos nos auxiliam na construção de projetos de machine learning, simulando situações reais do mercado de trabalho. O objetivo deste projeto é prever os sobreviventes do naufrágio do Titanic, utilizando técnicas de machine learning e uma abordagem cíclica. Para isso, faço uso das linguagens Python e R, além do ambiente de desenvolvimento Quarto.
