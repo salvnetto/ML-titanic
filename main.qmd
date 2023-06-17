@@ -1,0 +1,599 @@
+---
+title: "Prevendo sobreviventes do Titanic"
+subtitle: "Machine learning com abordagem cíclica"
+author: "Salvador Netto"
+abstract: "Este projeto tem como objetivo prever os sobreviventes do naufrágio do Titanic utilizando técnicas de machine learning e uma abordagem cíclica. Utilizo as linguagens Python, R e o ambiente de desenvolvimento Quarto. Essa iniciativa faz parte de um projeto de aprendizado proposto pela EstatMG, a empresa júnior de estatística da UFMG, na qual sou membro ativo."
+lang: pt
+execute: 
+  error: false
+  warning: false
+format: 
+  html:
+    theme: 
+      light: flatly
+      dark: darkly
+    highlight-style: a11y
+    toc: true
+    toc-title: "Conteúdo"
+    toc-depth: 3
+    toc-location: right
+    number-sections: true
+    number-depth: 3
+    anchor-sections: false
+code-block-bg: true
+code-block-border-left: true
+---
+
+# Definição do problema
+
+Os dados fornecidos no site [Kaggle](https://www.kaggle.com/), consistem em dois conjuntos: o arquivo `train.csv` contém informações detalhadas sobre uma parte dos passageiros a bordo do Titanic, incluindo se eles sobreviveram ou não, enquanto o arquivo `test.csv` possui informações semelhantes, porém não revela se os passageiros sobreviveram.
+
+O objetivo central do projeto é utilizar modelos de machine learning para prever se os 418 passageiros presentes no conjunto `test.csv` sobreviveram ao desastre. Trata-se de um problema de classificação binária, onde a variável alvo é a sobrevivência (0 = não sobreviveu, 1 = sobreviveu).
+
+Ao longo do processo, são empregadas etapas essenciais de um pipeline de machine learning, como pré-processamento dos dados, seleção de recursos relevantes, treinamento de modelos, ajuste de hiperparâmetros e avaliação do desempenho.
+
+## Importando pacotes e trains
+
+### Pacotes
+
+#### Python
+
+```{python}
+import pandas as pd
+import numpy as np
+
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.compose import make_column_transformer
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import mean_absolute_error
+```
+
+#### R
+
+```{r warning= F, message= F}
+library(reticulate)
+library(tidyverse)
+library(ggthemes)
+library(gridExtra)
+library(GGally)
+```
+
+### Dados
+
+```{python}
+train = pd.read_csv('data/train.csv')
+test = pd.read_csv('data/test.csv')
+```
+
+## Visão geral sobre o banco
+
+```{python}
+train.head().style
+test.head().style
+```
+
+Nosso banco de dados contém as variáveis:
+
+***Categóricas**:*
+
+-   Nominal
+    -   Cabin (cabine)
+    -   Embarked (porto de embarque): `C(Cherbourg), Q(Queenstown), S(Southampton)`
+    -   Sex: `Female, Male`
+-   Ordinal
+    -   Pclass (classe social e econômica): `1(Alta), 2(Média), 3(Baixa)`
+
+***Numérica**:*
+
+-   Discreta
+    -   Passenger ID
+    -   SibSp (quantidade de irmãos / cônjuges a bordo do Titanic)
+    -   Parch (quantidade de pais / crianças a bordo do Titanic)
+    -   Survived: `0(Óbito), 1(Sobrevivente)`
+-   Continua
+    -   Age
+    -   Fare (tarifa)
+
+***Texto**:*
+
+-   Ticket (bilhete)
+-   Name
+
+```{r warning= F}
+#| code-fold: true
+train = py$train
+train$Survived = as.character(train$Survived)
+
+v_age = 
+  ggplot(train) +
+    geom_histogram(aes(x= Age), bins = 39, col= "#e05e00", fill= "#ff7f0f") +
+    labs(x= "Idade", y= "") +
+    theme_hc()
+
+v_fare = 
+  ggplot(train) +
+    geom_histogram(aes(x= Fare), bins = 20, col= "#e05e00", fill= "#ff7f0f") +
+    labs(x= "Tarifa", y= "") +
+    theme_hc()
+
+v_survived = 
+  ggplot(train, aes(x= Survived)) +
+    geom_bar(fill= c("#ff4e36", "#ff7f0f")) +
+    labs(x= "Sobreviventes", y= "") +
+    scale_x_discrete(labels = c("Não", "Sim")) +
+    geom_text(aes(label= ..count..), stat = "count", vjust = 2, color = "black", size = 3) +
+    theme_hc()
+
+v_pclass = 
+  ggplot(train, aes(x= Pclass)) +
+    geom_bar(fill= c("#ff7f0f", "#ff4e36", "#f9b376")) +
+    labs(x= "Classe Social", y= "") +
+    geom_text(aes(label= ..count..), stat = "count", vjust = 2, color = "black", size = 3) +
+    scale_x_discrete(labels = c("Alta", "Média", "Baixa")) +
+    theme_hc()
+
+v_sex_survived = 
+  ggplot(train, aes(x= Sex, fill= Survived)) +
+    geom_bar() +
+    labs(x= "Sexo", y= "", fill= "Sobreviventes") +
+    scale_fill_manual(values = c("#ff4e36", "#ff7f0f"),
+                      labels = c("Não", "Sim")) +
+    scale_x_discrete(labels = c("Feminino", "Masculino")) +
+    geom_text(stat = "count", aes(label = ..count..), 
+              position = "stack", vjust = 1.5, color = "black", size = 3) +
+    theme_hc()
+    #theme(legend.position = "right")
+
+v_pclass_survived = 
+  ggplot(train, aes(x= factor(Pclass), fill= factor(Survived))) +
+    geom_bar(position = "fill") +
+    labs(x= "Classe social", y= "", fill= "Sobreviventes") +
+    scale_fill_manual(values = c("#ff4e36", "#ff7f0f"),
+                      labels = c("Não", "Sim")) +
+    scale_x_discrete(labels = c("Alta", "Média", "Baixa")) +
+    scale_y_continuous(labels = scales::percent_format(accuracy = 1)) +
+    theme_hc()
+    #theme(legend.position = "b")
+
+v_dist_fare = 
+  ggplot(train, aes(x= Fare, color= factor(Survived))) +
+    geom_density() +
+    labs(x= "Tarifa", y= "Densidade", color= "Sobreviventes") +
+    scale_color_manual(values = c("#ff4e36", "#00b2ff"),
+                       labels = c("Não", "Sim")) +
+    scale_x_continuous(breaks = c(0, 25, 50, 75 ,100, 200, 300), limits = c(0, 300)) +
+    theme_hc()
+
+v_dist_age_survived = 
+  ggplot(train, aes(x= Age, color= factor(Survived))) +
+    geom_density() +
+    labs(x= "Idade", y= "Densidade", color= "Sobreviventes") +
+    scale_color_manual(values = c("#ff4e36", "#00b2ff"),
+                       labels = c("Não", "Sim")) +
+    theme_hc()
+```
+
+```{r warning= F}
+#| echo: false
+#| layout-align: center
+grid.arrange(
+  arrangeGrob(v_age, v_fare, ncol=2), 
+  arrangeGrob(v_survived, v_pclass, ncol=2), nrow= 2)
+
+grid.arrange(
+  arrangeGrob(v_sex_survived, v_pclass_survived, ncol=2),
+  arrangeGrob(v_dist_fare, v_dist_age_survived, ncol=2),
+  nrow= 2)
+```
+
+# Preparação dos dados
+
+Nesse ciclo vamos:
+
+1.  Tratar valores ausentes.
+2.  Codificar variáveis categóricas.
+3.  Dividir os dados de treinamento em conjuntos de treinamento e validação para avaliar o desempenho do modelo.
+
+## Tratamento de valores faltantes
+
+As colunas `Cabin`, `Embarked`, `Fare` possuem valores faltantes então preciso trata-las primeiro.
+
+```{python}
+#Função para ver porcentagem dos valores faltantes
+def missing_per(data):
+  #Recebe um dataframe e retorna duas colunas, total absoluto e percentual de valores faltantes
+  total = data.isnull().sum()
+  percent = round(data.isnull().sum()/len(data)*100, 2)
+  return pd.concat([total, percent], axis= 1, keys= ["Total", "%"])
+
+#Função para ver a porcentagem dos valores
+def value_per(data, col):
+  total = data.loc[:, col].value_counts()
+  percent = round(data.loc[:, col].value_counts(normalize= True)*100, 2)
+  return pd.concat([total, percent], axis= 1, keys= ["Total", "%"])
+```
+
+```{python}
+missing_per(train)
+missing_per(test)
+```
+
+#### Embarked
+
+Tenho conhecimento que a classe social dos dois passageiros faltantes é 1(alta). Irei ver em qual porto, geralmente, passageiros de classe alta embarcam.
+
+```{python}
+value_per(train, 'Embarked')
+value_per(test, 'Embarked')
+```
+
+```{python}
+train[train.Embarked.isnull()]
+```
+
+```{r warning= F, message= FALSE}
+df_train = read.csv("data/train.csv", na.strings = '')
+df_train = df_train[complete.cases(df_train$Embarked), ]
+
+df_test = read.csv("data/test.csv") %>% na.omit()
+df_test = df_test[complete.cases(df_test$Embarked), ]
+
+
+box_train = 
+  ggplot(df_train, aes(x = Embarked, y = Fare, fill = factor(Pclass))) +
+    geom_boxplot() +
+    geom_hline(aes(yintercept= 80)) +
+    labs(title = "train.csv", x = "Embarked", y = "Fare", fill= "Pclass") +
+    ylim(0,300) +
+    theme_hc()
+box_test =
+  ggplot(df_test, aes(x = Embarked, y = Fare, fill = factor(Pclass))) +
+    geom_boxplot() +
+    geom_hline(aes(yintercept= 80)) +
+    labs(title = "test.csv", x = "Embarked", y = "Fare", fill= "Pclass") +
+    ylim(0,300) +
+    theme_hc()
+
+grid.arrange(box_train, box_test, ncol= 2)
+```
+
+Nos dois datasets, passageiros de classe alta embarcaram no porto C. Nossos passageiros faltantes tem o mesmo valor de tarifa que a mediana da classe alta no porto C. Então vamos definir Porto C para eles.
+
+```{python}
+#Definindo o Porto C para os valores faltantes
+train.Embarked.fillna("C", inplace=True)
+```
+
+#### Cabin
+
+A coluna "Cabin" contém muitos valores ausentes. Uma abordagem para preencher esses valores é relacionar a tarifa com a cabine correspondente e utilizar essa informação para estimar os valores faltantes.
+
+```{python}
+#Unindo os DFs
+sobreviventes = train.Survived
+train.drop(['Survived'],axis= 1, inplace= True)
+
+df = pd.concat([train, test], ignore_index= True)
+
+
+df.Cabin.fillna("N", inplace= True) #Transformo todos os valores nulos em "N"
+df.Cabin = [i[0] for i in df.Cabin] #Pego o primeiro "Char" de cada valor
+
+value_per(df, 'Cabin')
+```
+
+```{python}
+#Agrupar Cabin por Fare
+df.groupby('Cabin')['Fare'].mean().sort_values()
+```
+
+```{python}
+#| echo: false
+pd.set_option('mode.chained_assignment', None)
+```
+
+```{python}
+#Função para determinar cabine para os "N"
+def cabin(i):
+    a = 0
+    if i<16:  #Estou usando a média dos intervalos como base
+        a = "G"
+    elif i>=16 and i<27: #35-18 = 17    17/2 = 8.5     18+8.5 = 26.5
+        a = "F"
+    elif i>=27 and i<38:
+        a = "T"
+    elif i>=38 and i<47:
+        a = "A"
+    elif i>= 47 and i<53:
+        a = "E"
+    elif i>= 53 and i<54:
+        a = "D"
+    elif i>=54 and i<116:
+        a = 'C'
+    else:
+        a = "B"
+    return a
+
+
+# Aplicando a with_N
+with_n = df[df.Cabin == "N"]
+without_n = df[df.Cabin != "N"]
+
+with_n['Cabin'] = with_n.Fare.apply(lambda x: cabin(x))
+
+
+# Devolvendo os dfs originais
+df = pd.concat([with_n, without_n], axis= 0)
+df.sort_values(by = 'PassengerId', inplace=True)
+train = df[:891]
+test = df[891:]
+test.reset_index(drop= True, inplace= True)
+train['Survived'] = sobreviventes
+```
+
+#### Fare
+
+Há apenas um valor faltante em Fare, usarei médias de passageiros com caracteristicas próximas.
+
+```{python}
+test[test.Fare.isnull()]
+```
+
+```{python}
+#Pegando média dos valores para passageiros com caracteristicas proximas a "Mr. Thomas"
+valor = test[(test.Pclass == 3) & 
+                (test.Embarked == "S") & 
+                (test.Sex == "male")].Fare.mean()
+test.Fare.fillna(valor, inplace=True)
+```
+
+```{python}
+missing_per(train)
+missing_per(test)
+```
+
+```{python}
+train.head().style
+test.head().style
+```
+
+## Codificando variáveis categóricas
+
+`Sex`, `Embarked` e `Cabin` precisam ser convertidas para números.
+
+```{python}
+ohe = OneHotEncoder(sparse_output= False)
+
+def encoder(df, cols):
+  features_array = ohe.fit_transform(df[cols])
+  features_labels = np.concatenate(ohe.categories_)
+  features_df = pd.DataFrame(features_array, columns= features_labels)
+  return features_df
+
+cols = ['Sex', 'Embarked', 'Cabin']
+features_train = encoder(train, cols)
+features_test = encoder(test, cols)
+
+train = pd.concat([train, features_train], axis=1)
+test = pd.concat([test, features_test], axis=1)
+```
+
+```{python}
+train.head().style
+test.head().style
+```
+
+
+## Divisão de treinamento e teste
+
+O código abaixo realiza uma divisão de treinamento e teste, colocando 75% dos dados em um conjunto de treinamento e 25% dos dados em um conjunto de teste. Isso é feito para garantir que nosso algoritmo de classificação seja capaz de generalizar bem para novos dados.
+
+```{python}
+#Removendo colunas
+y = train.Survived.copy()
+x = train.drop(['Survived', 'PassengerId', 'Name', 'Ticket', 'Age', 'Sex', 'Embarked', 'Cabin'], axis= 1)
+
+#Dividindo
+x_train, x_test, y_train, y_test = train_test_split(x, y, test_size= 0.25, random_state= 20)
+```
+
+# Escolha e treinamento do modelo
+
+Por se tratar de classificação binária, usarei como modelo a regressão logística
+
+## Treinamento do Modelo
+
+```{python}
+model_lr = LogisticRegression(solver='lbfgs', max_iter=1000)
+
+model_lr.fit(x_train, y_train) 
+```
+
+```{python}
+#predict
+pred = model_lr.predict(x_test)
+```
+
+# Avaliação de desempenho
+
+Usarei o metodo de acurácia para medir o desempenho do modelo
+
+```{python}
+score = model_lr.score(x_test, y_test)
+score
+```
+
+```{r}
+#| output: false
+#| echo: false
+score = py$score
+```
+
+
+Tivemos uma acurácia de `r score` usando o metodo de train_test_split. Agora iremos usar nosso modelo no banco `test.csv` para prever os sobreviventes.
+
+## Prevendo 'test.csv'
+
+Submeterei os resultados do modelo ao site kaggle para obter a quantidade de acertos.
+
+```{python}
+test_id = test.PassengerId.copy()
+test_drop = test.drop(['PassengerId', 'Name', 'Ticket', 'Age', 'Sex', 'Embarked', 'Cabin'], axis= 1)
+
+pred = model_lr.predict(test_drop)
+
+submission = pd.DataFrame({"PassengerId": test_id.values, "Survived": pred})
+submission.to_csv("data/submission.csv", index= False)
+```
+
+![Porcentagem de acertos do modelo](images/acerto1.jpg)
+
+# Refinamento
+
+Vamos melhorar o modelo adicionando `Title`,`Family_size` e estimando melhor `Age`.
+
+#### Name
+
+Vou criar uma nova variável com os titulos dos passageiros.
+
+```{python}
+train['Title'] = train.Name.str.extract(' ([A-Za-z]+)\.')
+test['Title'] = test.Name.str.extract(' ([A-Za-z]+)\.')
+
+value_per(train, 'Title')
+value_per(test, 'Title')
+```
+
+Como temos muitos valores com poucas repetições, iremos agrupa-los.
+
+```{python}
+#Train
+train['Title'] = train['Title'].replace(
+  ['Lady','Countess','Capt','Col','Don','Dr','Major','Rev','Sir','Jonkheer'], 'Especial')
+train['Title'] = train['Title'].replace('Mlle', 'Miss') #Mademoiselle é equivalente a Miss
+train['Title'] = train['Title'].replace('Ms', 'Miss')
+train['Title'] = train['Title'].replace('Mme', 'Mrs') #Madame é equivalente a Mrs
+
+#Teste
+test['Title'] = test['Title'].replace(['Col','Dr','Rev','Dona'], 'Especial')
+test['Title'] = test['Title'].replace('Ms', 'Miss')
+```
+
+```{python}
+#Codificando
+cols = ['Title']
+features_train = encoder(train, cols)
+features_test = encoder(test, cols)
+
+train = pd.concat([train, features_train], axis=1)
+test = pd.concat([test, features_test], axis=1)
+```
+
+```{python}
+value_per(train, 'Title')
+value_per(test, 'Title')
+```
+
+#### Age
+
+```{r warning=FALSE}
+ggplot(train, aes(x= Age)) +
+  geom_histogram(bins= 39, aes(y = ..density..),col= "#e05e00", fill = "#ff7f0f") +
+  geom_density(col = "black") +
+  scale_y_continuous(labels = scales::percent_format()) +
+  labs(x= "Idade", y= "Densidade", title= "Distribuição da Idade") +
+  theme_hc()
+```
+
+A idade segue uma distribuição aproximadamente normal, vamos tentar gerar números que segue uma distribuição normal com sua média e variância.
+
+```{r}
+test = py$test
+age_train = abs(rnorm(177, mean(train$Age, na.rm = T), sd(train$Age, na.rm = T)))
+age_test = abs(rnorm(86, mean(test$Age, na.rm = T), sd(test$Age, na.rm = T)))
+```
+
+```{python}
+def dict_age(df, valor):
+  nan_indices = df[df['Age'].isna()].index.tolist()
+  nan_valor = valor
+  nan_dict = dict(zip(nan_indices, nan_valor))
+  return nan_dict
+
+age_train = dict_age(train, r.age_train)
+age_test = dict_age(test, r.age_test)
+
+train.Age.fillna(age_train, inplace= True)
+test.Age.fillna(age_test, inplace= True)
+```
+
+#### Family_size
+
+Iremos criar a variável `Family_size` somando `SibSp` e `Parch`
+
+```{python}
+train['Family_size'] = train.SibSp + train.Parch+1
+test['Family_size'] = test.SibSp + test.Parch+1
+```
+
+```{python}
+#| echo: false
+pd.set_option('mode.chained_assignment', 'warn')
+```
+
+## Treinamento do modelo refinado
+
+### Preparação
+
+```{python}
+train.head().style
+```
+
+
+```{python}
+#Removendo colunas
+y = train.Survived.copy()
+x = train.drop(
+  ['Survived', 'PassengerId', 'Name', 'Ticket', 'Sex', 'Embarked', 'Cabin', 'Title'], axis=1)
+test_id = test.PassengerId.copy()
+test_drop = test.drop(
+  ['PassengerId', 'Name', 'Ticket', 'Sex', 'Embarked', 'Cabin', 'Title'], axis= 1)
+
+
+#Dividindo
+x_train, x_test, y_train, y_test = train_test_split(x, y, test_size= 0.25, random_state= 20)
+```
+
+### Treinamento
+
+```{python}
+model_lr.fit(x_train, y_train) 
+```
+
+```{python}
+#predict
+pred = model_lr.predict(x_test)
+```
+
+### Avaliação
+
+```{python}
+score = model_lr.score(x_test, y_test)
+score
+```
+```{r}
+#| output: false
+#| echo: false
+score = py$score
+```
+
+Conseguimos uma melhora na acurácia do modelo, alcançando `r score`.
+
+```{python}
+pred = model_lr.predict(test_drop)
+submission = pd.DataFrame({"PassengerId": test_id.values, "Survived": pred})
+submission.to_csv("data/submission1.csv", index= False)
+```
+
+![Porcentagem de acertos do modelo refinado](images/acerto2.jpg)

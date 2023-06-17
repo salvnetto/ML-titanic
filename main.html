@@ -1,0 +1,2181 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="pt" xml:lang="pt"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.3.361">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Salvador Netto">
+
+<title>Prevendo sobreviventes do Titanic</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="main_files/libs/clipboard/clipboard.min.js"></script>
+<script src="main_files/libs/quarto-html/quarto.js"></script>
+<script src="main_files/libs/quarto-html/popper.min.js"></script>
+<script src="main_files/libs/quarto-html/tippy.umd.min.js"></script>
+<link href="main_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="main_files/libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
+<link href="main_files/libs/quarto-html/quarto-syntax-highlighting-dark.css" rel="prefetch" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
+<script src="main_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="main_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="main_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="main_files/libs/bootstrap/bootstrap-dark.min.css" rel="prefetch" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+
+
+</head>
+
+<body>
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+  <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Conteúdo</h2>
+   
+  <ul>
+  <li><a href="#definição-do-problema" id="toc-definição-do-problema" class="nav-link active" data-scroll-target="#definição-do-problema"><span class="header-section-number">1</span> Definição do problema</a>
+  <ul class="collapse">
+  <li><a href="#importando-pacotes-e-trains" id="toc-importando-pacotes-e-trains" class="nav-link" data-scroll-target="#importando-pacotes-e-trains"><span class="header-section-number">1.1</span> Importando pacotes e trains</a>
+  <ul class="collapse">
+  <li><a href="#pacotes" id="toc-pacotes" class="nav-link" data-scroll-target="#pacotes"><span class="header-section-number">1.1.1</span> Pacotes</a></li>
+  <li><a href="#dados" id="toc-dados" class="nav-link" data-scroll-target="#dados"><span class="header-section-number">1.1.2</span> Dados</a></li>
+  </ul></li>
+  <li><a href="#visão-geral-sobre-o-banco" id="toc-visão-geral-sobre-o-banco" class="nav-link" data-scroll-target="#visão-geral-sobre-o-banco"><span class="header-section-number">1.2</span> Visão geral sobre o banco</a></li>
+  </ul></li>
+  <li><a href="#preparação-dos-dados" id="toc-preparação-dos-dados" class="nav-link" data-scroll-target="#preparação-dos-dados"><span class="header-section-number">2</span> Preparação dos dados</a>
+  <ul class="collapse">
+  <li><a href="#tratamento-de-valores-faltantes" id="toc-tratamento-de-valores-faltantes" class="nav-link" data-scroll-target="#tratamento-de-valores-faltantes"><span class="header-section-number">2.1</span> Tratamento de valores faltantes</a></li>
+  <li><a href="#codificando-variáveis-categóricas" id="toc-codificando-variáveis-categóricas" class="nav-link" data-scroll-target="#codificando-variáveis-categóricas"><span class="header-section-number">2.2</span> Codificando variáveis categóricas</a></li>
+  <li><a href="#divisão-de-treinamento-e-teste" id="toc-divisão-de-treinamento-e-teste" class="nav-link" data-scroll-target="#divisão-de-treinamento-e-teste"><span class="header-section-number">2.3</span> Divisão de treinamento e teste</a></li>
+  </ul></li>
+  <li><a href="#escolha-e-treinamento-do-modelo" id="toc-escolha-e-treinamento-do-modelo" class="nav-link" data-scroll-target="#escolha-e-treinamento-do-modelo"><span class="header-section-number">3</span> Escolha e treinamento do modelo</a>
+  <ul class="collapse">
+  <li><a href="#treinamento-do-modelo" id="toc-treinamento-do-modelo" class="nav-link" data-scroll-target="#treinamento-do-modelo"><span class="header-section-number">3.1</span> Treinamento do Modelo</a></li>
+  </ul></li>
+  <li><a href="#avaliação-de-desempenho" id="toc-avaliação-de-desempenho" class="nav-link" data-scroll-target="#avaliação-de-desempenho"><span class="header-section-number">4</span> Avaliação de desempenho</a>
+  <ul class="collapse">
+  <li><a href="#prevendo-test.csv" id="toc-prevendo-test.csv" class="nav-link" data-scroll-target="#prevendo-test.csv"><span class="header-section-number">4.1</span> Prevendo ‘test.csv’</a></li>
+  </ul></li>
+  <li><a href="#refinamento" id="toc-refinamento" class="nav-link" data-scroll-target="#refinamento"><span class="header-section-number">5</span> Refinamento</a>
+  <ul class="collapse">
+  <li><a href="#treinamento-do-modelo-refinado" id="toc-treinamento-do-modelo-refinado" class="nav-link" data-scroll-target="#treinamento-do-modelo-refinado"><span class="header-section-number">5.1</span> Treinamento do modelo refinado</a>
+  <ul class="collapse">
+  <li><a href="#preparação" id="toc-preparação" class="nav-link" data-scroll-target="#preparação"><span class="header-section-number">5.1.1</span> Preparação</a></li>
+  <li><a href="#treinamento" id="toc-treinamento" class="nav-link" data-scroll-target="#treinamento"><span class="header-section-number">5.1.2</span> Treinamento</a></li>
+  <li><a href="#avaliação" id="toc-avaliação" class="nav-link" data-scroll-target="#avaliação"><span class="header-section-number">5.1.3</span> Avaliação</a></li>
+  </ul></li>
+  </ul></li>
+  </ul>
+</nav>
+</div>
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Prevendo sobreviventes do Titanic</h1>
+<p class="subtitle lead">Machine learning com abordagem cíclica</p>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Autor</div>
+    <div class="quarto-title-meta-contents">
+             <p>Salvador Netto </p>
+          </div>
+  </div>
+    
+  
+    
+  </div>
+  
+<div>
+  <div class="abstract">
+    <div class="abstract-title">Resumo</div>
+    Este projeto tem como objetivo prever os sobreviventes do naufrágio do Titanic utilizando técnicas de machine learning e uma abordagem cíclica. Utilizo as linguagens Python, R e o ambiente de desenvolvimento Quarto. Essa iniciativa faz parte de um projeto de aprendizado proposto pela EstatMG, a empresa júnior de estatística da UFMG, na qual sou membro ativo.
+  </div>
+</div>
+
+</header>
+
+<section id="definição-do-problema" class="level1" data-number="1">
+<h1 data-number="1"><span class="header-section-number">1</span> Definição do problema</h1>
+<p>Os dados fornecidos no site <a href="https://www.kaggle.com/">Kaggle</a>, consistem em dois conjuntos: o arquivo <code>train.csv</code> contém informações detalhadas sobre uma parte dos passageiros a bordo do Titanic, incluindo se eles sobreviveram ou não, enquanto o arquivo <code>test.csv</code> possui informações semelhantes, porém não revela se os passageiros sobreviveram.</p>
+<p>O objetivo central do projeto é utilizar modelos de machine learning para prever se os 418 passageiros presentes no conjunto <code>test.csv</code> sobreviveram ao desastre. Trata-se de um problema de classificação binária, onde a variável alvo é a sobrevivência (0 = não sobreviveu, 1 = sobreviveu).</p>
+<p>Ao longo do processo, são empregadas etapas essenciais de um pipeline de machine learning, como pré-processamento dos dados, seleção de recursos relevantes, treinamento de modelos, ajuste de hiperparâmetros e avaliação do desempenho.</p>
+<section id="importando-pacotes-e-trains" class="level2" data-number="1.1">
+<h2 data-number="1.1" data-anchor-id="importando-pacotes-e-trains"><span class="header-section-number">1.1</span> Importando pacotes e trains</h2>
+<section id="pacotes" class="level3" data-number="1.1.1">
+<h3 data-number="1.1.1" data-anchor-id="pacotes"><span class="header-section-number">1.1.1</span> Pacotes</h3>
+<section id="python" class="level4">
+<h4 data-anchor-id="python">Python</h4>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.preprocessing <span class="im">import</span> OneHotEncoder</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.compose <span class="im">import</span> make_column_transformer</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.model_selection <span class="im">import</span> train_test_split</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.linear_model <span class="im">import</span> LogisticRegression</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.metrics <span class="im">import</span> mean_absolute_error</span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="r" class="level4">
+<h4 data-anchor-id="r">R</h4>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(reticulate)</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggthemes)</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(gridExtra)</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(GGally)</span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+</section>
+<section id="dados" class="level3" data-number="1.1.2">
+<h3 data-number="1.1.2" data-anchor-id="dados"><span class="header-section-number">1.1.2</span> Dados</h3>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>train <span class="op">=</span> pd.read_csv(<span class="st">'data/train.csv'</span>)</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>test <span class="op">=</span> pd.read_csv(<span class="st">'data/test.csv'</span>)</span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+</section>
+<section id="visão-geral-sobre-o-banco" class="level2" data-number="1.2">
+<h2 data-number="1.2" data-anchor-id="visão-geral-sobre-o-banco"><span class="header-section-number">1.2</span> Visão geral sobre o banco</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>train.head().style</span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<style type="text/css">
+</style>
+
+<table id="T_38c8d" data-quarto-postprocess="true" class="table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th class="blank level0" data-quarto-table-cell-role="th">&nbsp;</th>
+<th id="T_38c8d_level0_col0" class="col_heading level0 col0" data-quarto-table-cell-role="th">PassengerId</th>
+<th id="T_38c8d_level0_col1" class="col_heading level0 col1" data-quarto-table-cell-role="th">Survived</th>
+<th id="T_38c8d_level0_col2" class="col_heading level0 col2" data-quarto-table-cell-role="th">Pclass</th>
+<th id="T_38c8d_level0_col3" class="col_heading level0 col3" data-quarto-table-cell-role="th">Name</th>
+<th id="T_38c8d_level0_col4" class="col_heading level0 col4" data-quarto-table-cell-role="th">Sex</th>
+<th id="T_38c8d_level0_col5" class="col_heading level0 col5" data-quarto-table-cell-role="th">Age</th>
+<th id="T_38c8d_level0_col6" class="col_heading level0 col6" data-quarto-table-cell-role="th">SibSp</th>
+<th id="T_38c8d_level0_col7" class="col_heading level0 col7" data-quarto-table-cell-role="th">Parch</th>
+<th id="T_38c8d_level0_col8" class="col_heading level0 col8" data-quarto-table-cell-role="th">Ticket</th>
+<th id="T_38c8d_level0_col9" class="col_heading level0 col9" data-quarto-table-cell-role="th">Fare</th>
+<th id="T_38c8d_level0_col10" class="col_heading level0 col10" data-quarto-table-cell-role="th">Cabin</th>
+<th id="T_38c8d_level0_col11" class="col_heading level0 col11" data-quarto-table-cell-role="th">Embarked</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td id="T_38c8d_level0_row0" class="row_heading level0 row0" data-quarto-table-cell-role="th">0</td>
+<td id="T_38c8d_row0_col0" class="data row0 col0">1</td>
+<td id="T_38c8d_row0_col1" class="data row0 col1">0</td>
+<td id="T_38c8d_row0_col2" class="data row0 col2">3</td>
+<td id="T_38c8d_row0_col3" class="data row0 col3">Braund, Mr. Owen Harris</td>
+<td id="T_38c8d_row0_col4" class="data row0 col4">male</td>
+<td id="T_38c8d_row0_col5" class="data row0 col5">22.000000</td>
+<td id="T_38c8d_row0_col6" class="data row0 col6">1</td>
+<td id="T_38c8d_row0_col7" class="data row0 col7">0</td>
+<td id="T_38c8d_row0_col8" class="data row0 col8">A/5 21171</td>
+<td id="T_38c8d_row0_col9" class="data row0 col9">7.250000</td>
+<td id="T_38c8d_row0_col10" class="data row0 col10">nan</td>
+<td id="T_38c8d_row0_col11" class="data row0 col11">S</td>
+</tr>
+<tr class="even">
+<td id="T_38c8d_level0_row1" class="row_heading level0 row1" data-quarto-table-cell-role="th">1</td>
+<td id="T_38c8d_row1_col0" class="data row1 col0">2</td>
+<td id="T_38c8d_row1_col1" class="data row1 col1">1</td>
+<td id="T_38c8d_row1_col2" class="data row1 col2">1</td>
+<td id="T_38c8d_row1_col3" class="data row1 col3">Cumings, Mrs. John Bradley (Florence Briggs Thayer)</td>
+<td id="T_38c8d_row1_col4" class="data row1 col4">female</td>
+<td id="T_38c8d_row1_col5" class="data row1 col5">38.000000</td>
+<td id="T_38c8d_row1_col6" class="data row1 col6">1</td>
+<td id="T_38c8d_row1_col7" class="data row1 col7">0</td>
+<td id="T_38c8d_row1_col8" class="data row1 col8">PC 17599</td>
+<td id="T_38c8d_row1_col9" class="data row1 col9">71.283300</td>
+<td id="T_38c8d_row1_col10" class="data row1 col10">C85</td>
+<td id="T_38c8d_row1_col11" class="data row1 col11">C</td>
+</tr>
+<tr class="odd">
+<td id="T_38c8d_level0_row2" class="row_heading level0 row2" data-quarto-table-cell-role="th">2</td>
+<td id="T_38c8d_row2_col0" class="data row2 col0">3</td>
+<td id="T_38c8d_row2_col1" class="data row2 col1">1</td>
+<td id="T_38c8d_row2_col2" class="data row2 col2">3</td>
+<td id="T_38c8d_row2_col3" class="data row2 col3">Heikkinen, Miss. Laina</td>
+<td id="T_38c8d_row2_col4" class="data row2 col4">female</td>
+<td id="T_38c8d_row2_col5" class="data row2 col5">26.000000</td>
+<td id="T_38c8d_row2_col6" class="data row2 col6">0</td>
+<td id="T_38c8d_row2_col7" class="data row2 col7">0</td>
+<td id="T_38c8d_row2_col8" class="data row2 col8">STON/O2. 3101282</td>
+<td id="T_38c8d_row2_col9" class="data row2 col9">7.925000</td>
+<td id="T_38c8d_row2_col10" class="data row2 col10">nan</td>
+<td id="T_38c8d_row2_col11" class="data row2 col11">S</td>
+</tr>
+<tr class="even">
+<td id="T_38c8d_level0_row3" class="row_heading level0 row3" data-quarto-table-cell-role="th">3</td>
+<td id="T_38c8d_row3_col0" class="data row3 col0">4</td>
+<td id="T_38c8d_row3_col1" class="data row3 col1">1</td>
+<td id="T_38c8d_row3_col2" class="data row3 col2">1</td>
+<td id="T_38c8d_row3_col3" class="data row3 col3">Futrelle, Mrs. Jacques Heath (Lily May Peel)</td>
+<td id="T_38c8d_row3_col4" class="data row3 col4">female</td>
+<td id="T_38c8d_row3_col5" class="data row3 col5">35.000000</td>
+<td id="T_38c8d_row3_col6" class="data row3 col6">1</td>
+<td id="T_38c8d_row3_col7" class="data row3 col7">0</td>
+<td id="T_38c8d_row3_col8" class="data row3 col8">113803</td>
+<td id="T_38c8d_row3_col9" class="data row3 col9">53.100000</td>
+<td id="T_38c8d_row3_col10" class="data row3 col10">C123</td>
+<td id="T_38c8d_row3_col11" class="data row3 col11">S</td>
+</tr>
+<tr class="odd">
+<td id="T_38c8d_level0_row4" class="row_heading level0 row4" data-quarto-table-cell-role="th">4</td>
+<td id="T_38c8d_row4_col0" class="data row4 col0">5</td>
+<td id="T_38c8d_row4_col1" class="data row4 col1">0</td>
+<td id="T_38c8d_row4_col2" class="data row4 col2">3</td>
+<td id="T_38c8d_row4_col3" class="data row4 col3">Allen, Mr. William Henry</td>
+<td id="T_38c8d_row4_col4" class="data row4 col4">male</td>
+<td id="T_38c8d_row4_col5" class="data row4 col5">35.000000</td>
+<td id="T_38c8d_row4_col6" class="data row4 col6">0</td>
+<td id="T_38c8d_row4_col7" class="data row4 col7">0</td>
+<td id="T_38c8d_row4_col8" class="data row4 col8">373450</td>
+<td id="T_38c8d_row4_col9" class="data row4 col9">8.050000</td>
+<td id="T_38c8d_row4_col10" class="data row4 col10">nan</td>
+<td id="T_38c8d_row4_col11" class="data row4 col11">S</td>
+</tr>
+</tbody>
+</table>
+
+
+</div>
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>test.head().style</span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<style type="text/css">
+</style>
+
+<table id="T_1f390" data-quarto-postprocess="true" class="table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th class="blank level0" data-quarto-table-cell-role="th">&nbsp;</th>
+<th id="T_1f390_level0_col0" class="col_heading level0 col0" data-quarto-table-cell-role="th">PassengerId</th>
+<th id="T_1f390_level0_col1" class="col_heading level0 col1" data-quarto-table-cell-role="th">Pclass</th>
+<th id="T_1f390_level0_col2" class="col_heading level0 col2" data-quarto-table-cell-role="th">Name</th>
+<th id="T_1f390_level0_col3" class="col_heading level0 col3" data-quarto-table-cell-role="th">Sex</th>
+<th id="T_1f390_level0_col4" class="col_heading level0 col4" data-quarto-table-cell-role="th">Age</th>
+<th id="T_1f390_level0_col5" class="col_heading level0 col5" data-quarto-table-cell-role="th">SibSp</th>
+<th id="T_1f390_level0_col6" class="col_heading level0 col6" data-quarto-table-cell-role="th">Parch</th>
+<th id="T_1f390_level0_col7" class="col_heading level0 col7" data-quarto-table-cell-role="th">Ticket</th>
+<th id="T_1f390_level0_col8" class="col_heading level0 col8" data-quarto-table-cell-role="th">Fare</th>
+<th id="T_1f390_level0_col9" class="col_heading level0 col9" data-quarto-table-cell-role="th">Cabin</th>
+<th id="T_1f390_level0_col10" class="col_heading level0 col10" data-quarto-table-cell-role="th">Embarked</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td id="T_1f390_level0_row0" class="row_heading level0 row0" data-quarto-table-cell-role="th">0</td>
+<td id="T_1f390_row0_col0" class="data row0 col0">892</td>
+<td id="T_1f390_row0_col1" class="data row0 col1">3</td>
+<td id="T_1f390_row0_col2" class="data row0 col2">Kelly, Mr. James</td>
+<td id="T_1f390_row0_col3" class="data row0 col3">male</td>
+<td id="T_1f390_row0_col4" class="data row0 col4">34.500000</td>
+<td id="T_1f390_row0_col5" class="data row0 col5">0</td>
+<td id="T_1f390_row0_col6" class="data row0 col6">0</td>
+<td id="T_1f390_row0_col7" class="data row0 col7">330911</td>
+<td id="T_1f390_row0_col8" class="data row0 col8">7.829200</td>
+<td id="T_1f390_row0_col9" class="data row0 col9">nan</td>
+<td id="T_1f390_row0_col10" class="data row0 col10">Q</td>
+</tr>
+<tr class="even">
+<td id="T_1f390_level0_row1" class="row_heading level0 row1" data-quarto-table-cell-role="th">1</td>
+<td id="T_1f390_row1_col0" class="data row1 col0">893</td>
+<td id="T_1f390_row1_col1" class="data row1 col1">3</td>
+<td id="T_1f390_row1_col2" class="data row1 col2">Wilkes, Mrs. James (Ellen Needs)</td>
+<td id="T_1f390_row1_col3" class="data row1 col3">female</td>
+<td id="T_1f390_row1_col4" class="data row1 col4">47.000000</td>
+<td id="T_1f390_row1_col5" class="data row1 col5">1</td>
+<td id="T_1f390_row1_col6" class="data row1 col6">0</td>
+<td id="T_1f390_row1_col7" class="data row1 col7">363272</td>
+<td id="T_1f390_row1_col8" class="data row1 col8">7.000000</td>
+<td id="T_1f390_row1_col9" class="data row1 col9">nan</td>
+<td id="T_1f390_row1_col10" class="data row1 col10">S</td>
+</tr>
+<tr class="odd">
+<td id="T_1f390_level0_row2" class="row_heading level0 row2" data-quarto-table-cell-role="th">2</td>
+<td id="T_1f390_row2_col0" class="data row2 col0">894</td>
+<td id="T_1f390_row2_col1" class="data row2 col1">2</td>
+<td id="T_1f390_row2_col2" class="data row2 col2">Myles, Mr. Thomas Francis</td>
+<td id="T_1f390_row2_col3" class="data row2 col3">male</td>
+<td id="T_1f390_row2_col4" class="data row2 col4">62.000000</td>
+<td id="T_1f390_row2_col5" class="data row2 col5">0</td>
+<td id="T_1f390_row2_col6" class="data row2 col6">0</td>
+<td id="T_1f390_row2_col7" class="data row2 col7">240276</td>
+<td id="T_1f390_row2_col8" class="data row2 col8">9.687500</td>
+<td id="T_1f390_row2_col9" class="data row2 col9">nan</td>
+<td id="T_1f390_row2_col10" class="data row2 col10">Q</td>
+</tr>
+<tr class="even">
+<td id="T_1f390_level0_row3" class="row_heading level0 row3" data-quarto-table-cell-role="th">3</td>
+<td id="T_1f390_row3_col0" class="data row3 col0">895</td>
+<td id="T_1f390_row3_col1" class="data row3 col1">3</td>
+<td id="T_1f390_row3_col2" class="data row3 col2">Wirz, Mr. Albert</td>
+<td id="T_1f390_row3_col3" class="data row3 col3">male</td>
+<td id="T_1f390_row3_col4" class="data row3 col4">27.000000</td>
+<td id="T_1f390_row3_col5" class="data row3 col5">0</td>
+<td id="T_1f390_row3_col6" class="data row3 col6">0</td>
+<td id="T_1f390_row3_col7" class="data row3 col7">315154</td>
+<td id="T_1f390_row3_col8" class="data row3 col8">8.662500</td>
+<td id="T_1f390_row3_col9" class="data row3 col9">nan</td>
+<td id="T_1f390_row3_col10" class="data row3 col10">S</td>
+</tr>
+<tr class="odd">
+<td id="T_1f390_level0_row4" class="row_heading level0 row4" data-quarto-table-cell-role="th">4</td>
+<td id="T_1f390_row4_col0" class="data row4 col0">896</td>
+<td id="T_1f390_row4_col1" class="data row4 col1">3</td>
+<td id="T_1f390_row4_col2" class="data row4 col2">Hirvonen, Mrs. Alexander (Helga E Lindqvist)</td>
+<td id="T_1f390_row4_col3" class="data row4 col3">female</td>
+<td id="T_1f390_row4_col4" class="data row4 col4">22.000000</td>
+<td id="T_1f390_row4_col5" class="data row4 col5">1</td>
+<td id="T_1f390_row4_col6" class="data row4 col6">1</td>
+<td id="T_1f390_row4_col7" class="data row4 col7">3101298</td>
+<td id="T_1f390_row4_col8" class="data row4 col8">12.287500</td>
+<td id="T_1f390_row4_col9" class="data row4 col9">nan</td>
+<td id="T_1f390_row4_col10" class="data row4 col10">S</td>
+</tr>
+</tbody>
+</table>
+
+
+</div>
+</div>
+<p>Nosso banco de dados contém as variáveis:</p>
+<p><em><strong>Categóricas</strong>:</em></p>
+<ul>
+<li>Nominal
+<ul>
+<li>Cabin (cabine)</li>
+<li>Embarked (porto de embarque): <code>C(Cherbourg), Q(Queenstown), S(Southampton)</code></li>
+<li>Sex: <code>Female, Male</code></li>
+</ul></li>
+<li>Ordinal
+<ul>
+<li>Pclass (classe social e econômica): <code>1(Alta), 2(Média), 3(Baixa)</code></li>
+</ul></li>
+</ul>
+<p><em><strong>Numérica</strong>:</em></p>
+<ul>
+<li>Discreta
+<ul>
+<li>Passenger ID</li>
+<li>SibSp (quantidade de irmãos / cônjuges a bordo do Titanic)</li>
+<li>Parch (quantidade de pais / crianças a bordo do Titanic)</li>
+<li>Survived: <code>0(Óbito), 1(Sobrevivente)</code></li>
+</ul></li>
+<li>Continua
+<ul>
+<li>Age</li>
+<li>Fare (tarifa)</li>
+</ul></li>
+</ul>
+<p><em><strong>Texto</strong>:</em></p>
+<ul>
+<li>Ticket (bilhete)</li>
+<li>Name</li>
+</ul>
+<div class="cell">
+<details>
+<summary>Código</summary>
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>train <span class="ot">=</span> py<span class="sc">$</span>train</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>train<span class="sc">$</span>Survived <span class="ot">=</span> <span class="fu">as.character</span>(train<span class="sc">$</span>Survived)</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>v_age <span class="ot">=</span> </span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(train) <span class="sc">+</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_histogram</span>(<span class="fu">aes</span>(<span class="at">x=</span> Age), <span class="at">bins =</span> <span class="dv">39</span>, <span class="at">col=</span> <span class="st">"#e05e00"</span>, <span class="at">fill=</span> <span class="st">"#ff7f0f"</span>) <span class="sc">+</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">labs</span>(<span class="at">x=</span> <span class="st">"Idade"</span>, <span class="at">y=</span> <span class="st">""</span>) <span class="sc">+</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">theme_hc</span>()</span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>v_fare <span class="ot">=</span> </span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(train) <span class="sc">+</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_histogram</span>(<span class="fu">aes</span>(<span class="at">x=</span> Fare), <span class="at">bins =</span> <span class="dv">20</span>, <span class="at">col=</span> <span class="st">"#e05e00"</span>, <span class="at">fill=</span> <span class="st">"#ff7f0f"</span>) <span class="sc">+</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>    <span class="fu">labs</span>(<span class="at">x=</span> <span class="st">"Tarifa"</span>, <span class="at">y=</span> <span class="st">""</span>) <span class="sc">+</span></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>    <span class="fu">theme_hc</span>()</span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>v_survived <span class="ot">=</span> </span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(train, <span class="fu">aes</span>(<span class="at">x=</span> Survived)) <span class="sc">+</span></span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_bar</span>(<span class="at">fill=</span> <span class="fu">c</span>(<span class="st">"#ff4e36"</span>, <span class="st">"#ff7f0f"</span>)) <span class="sc">+</span></span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a>    <span class="fu">labs</span>(<span class="at">x=</span> <span class="st">"Sobreviventes"</span>, <span class="at">y=</span> <span class="st">""</span>) <span class="sc">+</span></span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a>    <span class="fu">scale_x_discrete</span>(<span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"Não"</span>, <span class="st">"Sim"</span>)) <span class="sc">+</span></span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_text</span>(<span class="fu">aes</span>(<span class="at">label=</span> ..count..), <span class="at">stat =</span> <span class="st">"count"</span>, <span class="at">vjust =</span> <span class="dv">2</span>, <span class="at">color =</span> <span class="st">"black"</span>, <span class="at">size =</span> <span class="dv">3</span>) <span class="sc">+</span></span>
+<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a>    <span class="fu">theme_hc</span>()</span>
+<span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-24"><a href="#cb6-24" aria-hidden="true" tabindex="-1"></a>v_pclass <span class="ot">=</span> </span>
+<span id="cb6-25"><a href="#cb6-25" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(train, <span class="fu">aes</span>(<span class="at">x=</span> Pclass)) <span class="sc">+</span></span>
+<span id="cb6-26"><a href="#cb6-26" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_bar</span>(<span class="at">fill=</span> <span class="fu">c</span>(<span class="st">"#ff7f0f"</span>, <span class="st">"#ff4e36"</span>, <span class="st">"#f9b376"</span>)) <span class="sc">+</span></span>
+<span id="cb6-27"><a href="#cb6-27" aria-hidden="true" tabindex="-1"></a>    <span class="fu">labs</span>(<span class="at">x=</span> <span class="st">"Classe Social"</span>, <span class="at">y=</span> <span class="st">""</span>) <span class="sc">+</span></span>
+<span id="cb6-28"><a href="#cb6-28" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_text</span>(<span class="fu">aes</span>(<span class="at">label=</span> ..count..), <span class="at">stat =</span> <span class="st">"count"</span>, <span class="at">vjust =</span> <span class="dv">2</span>, <span class="at">color =</span> <span class="st">"black"</span>, <span class="at">size =</span> <span class="dv">3</span>) <span class="sc">+</span></span>
+<span id="cb6-29"><a href="#cb6-29" aria-hidden="true" tabindex="-1"></a>    <span class="fu">scale_x_discrete</span>(<span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"Alta"</span>, <span class="st">"Média"</span>, <span class="st">"Baixa"</span>)) <span class="sc">+</span></span>
+<span id="cb6-30"><a href="#cb6-30" aria-hidden="true" tabindex="-1"></a>    <span class="fu">theme_hc</span>()</span>
+<span id="cb6-31"><a href="#cb6-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-32"><a href="#cb6-32" aria-hidden="true" tabindex="-1"></a>v_sex_survived <span class="ot">=</span> </span>
+<span id="cb6-33"><a href="#cb6-33" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(train, <span class="fu">aes</span>(<span class="at">x=</span> Sex, <span class="at">fill=</span> Survived)) <span class="sc">+</span></span>
+<span id="cb6-34"><a href="#cb6-34" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_bar</span>() <span class="sc">+</span></span>
+<span id="cb6-35"><a href="#cb6-35" aria-hidden="true" tabindex="-1"></a>    <span class="fu">labs</span>(<span class="at">x=</span> <span class="st">"Sexo"</span>, <span class="at">y=</span> <span class="st">""</span>, <span class="at">fill=</span> <span class="st">"Sobreviventes"</span>) <span class="sc">+</span></span>
+<span id="cb6-36"><a href="#cb6-36" aria-hidden="true" tabindex="-1"></a>    <span class="fu">scale_fill_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="st">"#ff4e36"</span>, <span class="st">"#ff7f0f"</span>),</span>
+<span id="cb6-37"><a href="#cb6-37" aria-hidden="true" tabindex="-1"></a>                      <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"Não"</span>, <span class="st">"Sim"</span>)) <span class="sc">+</span></span>
+<span id="cb6-38"><a href="#cb6-38" aria-hidden="true" tabindex="-1"></a>    <span class="fu">scale_x_discrete</span>(<span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"Feminino"</span>, <span class="st">"Masculino"</span>)) <span class="sc">+</span></span>
+<span id="cb6-39"><a href="#cb6-39" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_text</span>(<span class="at">stat =</span> <span class="st">"count"</span>, <span class="fu">aes</span>(<span class="at">label =</span> ..count..), </span>
+<span id="cb6-40"><a href="#cb6-40" aria-hidden="true" tabindex="-1"></a>              <span class="at">position =</span> <span class="st">"stack"</span>, <span class="at">vjust =</span> <span class="fl">1.5</span>, <span class="at">color =</span> <span class="st">"black"</span>, <span class="at">size =</span> <span class="dv">3</span>) <span class="sc">+</span></span>
+<span id="cb6-41"><a href="#cb6-41" aria-hidden="true" tabindex="-1"></a>    <span class="fu">theme_hc</span>()</span>
+<span id="cb6-42"><a href="#cb6-42" aria-hidden="true" tabindex="-1"></a>    <span class="co">#theme(legend.position = "right")</span></span>
+<span id="cb6-43"><a href="#cb6-43" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-44"><a href="#cb6-44" aria-hidden="true" tabindex="-1"></a>v_pclass_survived <span class="ot">=</span> </span>
+<span id="cb6-45"><a href="#cb6-45" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(train, <span class="fu">aes</span>(<span class="at">x=</span> <span class="fu">factor</span>(Pclass), <span class="at">fill=</span> <span class="fu">factor</span>(Survived))) <span class="sc">+</span></span>
+<span id="cb6-46"><a href="#cb6-46" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_bar</span>(<span class="at">position =</span> <span class="st">"fill"</span>) <span class="sc">+</span></span>
+<span id="cb6-47"><a href="#cb6-47" aria-hidden="true" tabindex="-1"></a>    <span class="fu">labs</span>(<span class="at">x=</span> <span class="st">"Classe social"</span>, <span class="at">y=</span> <span class="st">""</span>, <span class="at">fill=</span> <span class="st">"Sobreviventes"</span>) <span class="sc">+</span></span>
+<span id="cb6-48"><a href="#cb6-48" aria-hidden="true" tabindex="-1"></a>    <span class="fu">scale_fill_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="st">"#ff4e36"</span>, <span class="st">"#ff7f0f"</span>),</span>
+<span id="cb6-49"><a href="#cb6-49" aria-hidden="true" tabindex="-1"></a>                      <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"Não"</span>, <span class="st">"Sim"</span>)) <span class="sc">+</span></span>
+<span id="cb6-50"><a href="#cb6-50" aria-hidden="true" tabindex="-1"></a>    <span class="fu">scale_x_discrete</span>(<span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"Alta"</span>, <span class="st">"Média"</span>, <span class="st">"Baixa"</span>)) <span class="sc">+</span></span>
+<span id="cb6-51"><a href="#cb6-51" aria-hidden="true" tabindex="-1"></a>    <span class="fu">scale_y_continuous</span>(<span class="at">labels =</span> scales<span class="sc">::</span><span class="fu">percent_format</span>(<span class="at">accuracy =</span> <span class="dv">1</span>)) <span class="sc">+</span></span>
+<span id="cb6-52"><a href="#cb6-52" aria-hidden="true" tabindex="-1"></a>    <span class="fu">theme_hc</span>()</span>
+<span id="cb6-53"><a href="#cb6-53" aria-hidden="true" tabindex="-1"></a>    <span class="co">#theme(legend.position = "b")</span></span>
+<span id="cb6-54"><a href="#cb6-54" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-55"><a href="#cb6-55" aria-hidden="true" tabindex="-1"></a>v_dist_fare <span class="ot">=</span> </span>
+<span id="cb6-56"><a href="#cb6-56" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(train, <span class="fu">aes</span>(<span class="at">x=</span> Fare, <span class="at">color=</span> <span class="fu">factor</span>(Survived))) <span class="sc">+</span></span>
+<span id="cb6-57"><a href="#cb6-57" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_density</span>() <span class="sc">+</span></span>
+<span id="cb6-58"><a href="#cb6-58" aria-hidden="true" tabindex="-1"></a>    <span class="fu">labs</span>(<span class="at">x=</span> <span class="st">"Tarifa"</span>, <span class="at">y=</span> <span class="st">"Densidade"</span>, <span class="at">color=</span> <span class="st">"Sobreviventes"</span>) <span class="sc">+</span></span>
+<span id="cb6-59"><a href="#cb6-59" aria-hidden="true" tabindex="-1"></a>    <span class="fu">scale_color_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="st">"#ff4e36"</span>, <span class="st">"#00b2ff"</span>),</span>
+<span id="cb6-60"><a href="#cb6-60" aria-hidden="true" tabindex="-1"></a>                       <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"Não"</span>, <span class="st">"Sim"</span>)) <span class="sc">+</span></span>
+<span id="cb6-61"><a href="#cb6-61" aria-hidden="true" tabindex="-1"></a>    <span class="fu">scale_x_continuous</span>(<span class="at">breaks =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">25</span>, <span class="dv">50</span>, <span class="dv">75</span> ,<span class="dv">100</span>, <span class="dv">200</span>, <span class="dv">300</span>), <span class="at">limits =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">300</span>)) <span class="sc">+</span></span>
+<span id="cb6-62"><a href="#cb6-62" aria-hidden="true" tabindex="-1"></a>    <span class="fu">theme_hc</span>()</span>
+<span id="cb6-63"><a href="#cb6-63" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-64"><a href="#cb6-64" aria-hidden="true" tabindex="-1"></a>v_dist_age_survived <span class="ot">=</span> </span>
+<span id="cb6-65"><a href="#cb6-65" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(train, <span class="fu">aes</span>(<span class="at">x=</span> Age, <span class="at">color=</span> <span class="fu">factor</span>(Survived))) <span class="sc">+</span></span>
+<span id="cb6-66"><a href="#cb6-66" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_density</span>() <span class="sc">+</span></span>
+<span id="cb6-67"><a href="#cb6-67" aria-hidden="true" tabindex="-1"></a>    <span class="fu">labs</span>(<span class="at">x=</span> <span class="st">"Idade"</span>, <span class="at">y=</span> <span class="st">"Densidade"</span>, <span class="at">color=</span> <span class="st">"Sobreviventes"</span>) <span class="sc">+</span></span>
+<span id="cb6-68"><a href="#cb6-68" aria-hidden="true" tabindex="-1"></a>    <span class="fu">scale_color_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="st">"#ff4e36"</span>, <span class="st">"#00b2ff"</span>),</span>
+<span id="cb6-69"><a href="#cb6-69" aria-hidden="true" tabindex="-1"></a>                       <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"Não"</span>, <span class="st">"Sim"</span>)) <span class="sc">+</span></span>
+<span id="cb6-70"><a href="#cb6-70" aria-hidden="true" tabindex="-1"></a>    <span class="fu">theme_hc</span>()</span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+<div class="cell" data-layout-align="center">
+<div class="cell-output-display">
+<p><img src="main_files/figure-html/unnamed-chunk-6-1.png" class="img-fluid" width="672"></p>
+</div>
+<div class="cell-output-display">
+<p><img src="main_files/figure-html/unnamed-chunk-6-2.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+</section>
+</section>
+<section id="preparação-dos-dados" class="level1" data-number="2">
+<h1 data-number="2"><span class="header-section-number">2</span> Preparação dos dados</h1>
+<p>Nesse ciclo vamos:</p>
+<ol type="1">
+<li>Tratar valores ausentes.</li>
+<li>Codificar variáveis categóricas.</li>
+<li>Dividir os dados de treinamento em conjuntos de treinamento e validação para avaliar o desempenho do modelo.</li>
+</ol>
+<section id="tratamento-de-valores-faltantes" class="level2" data-number="2.1">
+<h2 data-number="2.1" data-anchor-id="tratamento-de-valores-faltantes"><span class="header-section-number">2.1</span> Tratamento de valores faltantes</h2>
+<p>As colunas <code>Cabin</code>, <code>Embarked</code>, <code>Fare</code> possuem valores faltantes então preciso trata-las primeiro.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co">#Função para ver porcentagem dos valores faltantes</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> missing_per(data):</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>  <span class="co">#Recebe um dataframe e retorna duas colunas, total absoluto e percentual de valores faltantes</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>  total <span class="op">=</span> data.isnull().<span class="bu">sum</span>()</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>  percent <span class="op">=</span> <span class="bu">round</span>(data.isnull().<span class="bu">sum</span>()<span class="op">/</span><span class="bu">len</span>(data)<span class="op">*</span><span class="dv">100</span>, <span class="dv">2</span>)</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>  <span class="cf">return</span> pd.concat([total, percent], axis<span class="op">=</span> <span class="dv">1</span>, keys<span class="op">=</span> [<span class="st">"Total"</span>, <span class="st">"%"</span>])</span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a><span class="co">#Função para ver a porcentagem dos valores</span></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> value_per(data, col):</span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>  total <span class="op">=</span> data.loc[:, col].value_counts()</span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>  percent <span class="op">=</span> <span class="bu">round</span>(data.loc[:, col].value_counts(normalize<span class="op">=</span> <span class="va">True</span>)<span class="op">*</span><span class="dv">100</span>, <span class="dv">2</span>)</span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>  <span class="cf">return</span> pd.concat([total, percent], axis<span class="op">=</span> <span class="dv">1</span>, keys<span class="op">=</span> [<span class="st">"Total"</span>, <span class="st">"%"</span>])</span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>missing_per(train)</span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>             Total      %
+PassengerId      0   0.00
+Survived         0   0.00
+Pclass           0   0.00
+Name             0   0.00
+Sex              0   0.00
+Age            177  19.87
+SibSp            0   0.00
+Parch            0   0.00
+Ticket           0   0.00
+Fare             0   0.00
+Cabin          687  77.10
+Embarked         2   0.22</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>missing_per(test)</span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>             Total      %
+PassengerId      0   0.00
+Pclass           0   0.00
+Name             0   0.00
+Sex              0   0.00
+Age             86  20.57
+SibSp            0   0.00
+Parch            0   0.00
+Ticket           0   0.00
+Fare             1   0.24
+Cabin          327  78.23
+Embarked         0   0.00</code></pre>
+</div>
+</div>
+<section id="embarked" class="level4">
+<h4 data-anchor-id="embarked">Embarked</h4>
+<p>Tenho conhecimento que a classe social dos dois passageiros faltantes é 1(alta). Irei ver em qual porto, geralmente, passageiros de classe alta embarcam.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>value_per(train, <span class="st">'Embarked'</span>)</span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   Total      %
+S    644  72.44
+C    168  18.90
+Q     77   8.66</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>value_per(test, <span class="st">'Embarked'</span>)</span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   Total      %
+S    270  64.59
+C    102  24.40
+Q     46  11.00</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>train[train.Embarked.isnull()]</span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>     PassengerId  Survived  Pclass  ...  Fare Cabin  Embarked
+61            62         1       1  ...  80.0   B28       NaN
+829          830         1       1  ...  80.0   B28       NaN
+
+[2 rows x 12 columns]</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>df_train <span class="ot">=</span> <span class="fu">read.csv</span>(<span class="st">"data/train.csv"</span>, <span class="at">na.strings =</span> <span class="st">''</span>)</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>df_train <span class="ot">=</span> df_train[<span class="fu">complete.cases</span>(df_train<span class="sc">$</span>Embarked), ]</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>df_test <span class="ot">=</span> <span class="fu">read.csv</span>(<span class="st">"data/test.csv"</span>) <span class="sc">%&gt;%</span> <span class="fu">na.omit</span>()</span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>df_test <span class="ot">=</span> df_test[<span class="fu">complete.cases</span>(df_test<span class="sc">$</span>Embarked), ]</span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>box_train <span class="ot">=</span> </span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(df_train, <span class="fu">aes</span>(<span class="at">x =</span> Embarked, <span class="at">y =</span> Fare, <span class="at">fill =</span> <span class="fu">factor</span>(Pclass))) <span class="sc">+</span></span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_boxplot</span>() <span class="sc">+</span></span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_hline</span>(<span class="fu">aes</span>(<span class="at">yintercept=</span> <span class="dv">80</span>)) <span class="sc">+</span></span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"train.csv"</span>, <span class="at">x =</span> <span class="st">"Embarked"</span>, <span class="at">y =</span> <span class="st">"Fare"</span>, <span class="at">fill=</span> <span class="st">"Pclass"</span>) <span class="sc">+</span></span>
+<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ylim</span>(<span class="dv">0</span>,<span class="dv">300</span>) <span class="sc">+</span></span>
+<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a>    <span class="fu">theme_hc</span>()</span>
+<span id="cb18-15"><a href="#cb18-15" aria-hidden="true" tabindex="-1"></a>box_test <span class="ot">=</span></span>
+<span id="cb18-16"><a href="#cb18-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(df_test, <span class="fu">aes</span>(<span class="at">x =</span> Embarked, <span class="at">y =</span> Fare, <span class="at">fill =</span> <span class="fu">factor</span>(Pclass))) <span class="sc">+</span></span>
+<span id="cb18-17"><a href="#cb18-17" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_boxplot</span>() <span class="sc">+</span></span>
+<span id="cb18-18"><a href="#cb18-18" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_hline</span>(<span class="fu">aes</span>(<span class="at">yintercept=</span> <span class="dv">80</span>)) <span class="sc">+</span></span>
+<span id="cb18-19"><a href="#cb18-19" aria-hidden="true" tabindex="-1"></a>    <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"test.csv"</span>, <span class="at">x =</span> <span class="st">"Embarked"</span>, <span class="at">y =</span> <span class="st">"Fare"</span>, <span class="at">fill=</span> <span class="st">"Pclass"</span>) <span class="sc">+</span></span>
+<span id="cb18-20"><a href="#cb18-20" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ylim</span>(<span class="dv">0</span>,<span class="dv">300</span>) <span class="sc">+</span></span>
+<span id="cb18-21"><a href="#cb18-21" aria-hidden="true" tabindex="-1"></a>    <span class="fu">theme_hc</span>()</span>
+<span id="cb18-22"><a href="#cb18-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-23"><a href="#cb18-23" aria-hidden="true" tabindex="-1"></a><span class="fu">grid.arrange</span>(box_train, box_test, <span class="at">ncol=</span> <span class="dv">2</span>)</span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="main_files/figure-html/unnamed-chunk-11-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<p>Nos dois datasets, passageiros de classe alta embarcaram no porto C. Nossos passageiros faltantes tem o mesmo valor de tarifa que a mediana da classe alta no porto C. Então vamos definir Porto C para eles.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="co">#Definindo o Porto C para os valores faltantes</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>train.Embarked.fillna(<span class="st">"C"</span>, inplace<span class="op">=</span><span class="va">True</span>)</span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="cabin" class="level4">
+<h4 data-anchor-id="cabin">Cabin</h4>
+<p>A coluna “Cabin” contém muitos valores ausentes. Uma abordagem para preencher esses valores é relacionar a tarifa com a cabine correspondente e utilizar essa informação para estimar os valores faltantes.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co">#Unindo os DFs</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>sobreviventes <span class="op">=</span> train.Survived</span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>train.drop([<span class="st">'Survived'</span>],axis<span class="op">=</span> <span class="dv">1</span>, inplace<span class="op">=</span> <span class="va">True</span>)</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.concat([train, test], ignore_index<span class="op">=</span> <span class="va">True</span>)</span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>df.Cabin.fillna(<span class="st">"N"</span>, inplace<span class="op">=</span> <span class="va">True</span>) <span class="co">#Transformo todos os valores nulos em "N"</span></span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a>df.Cabin <span class="op">=</span> [i[<span class="dv">0</span>] <span class="cf">for</span> i <span class="kw">in</span> df.Cabin] <span class="co">#Pego o primeiro "Char" de cada valor</span></span>
+<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a>value_per(df, <span class="st">'Cabin'</span>)</span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   Total      %
+N   1014  77.46
+C     94   7.18
+B     65   4.97
+D     46   3.51
+E     41   3.13
+A     22   1.68
+F     21   1.60
+G      5   0.38
+T      1   0.08</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="co">#Agrupar Cabin por Fare</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>df.groupby(<span class="st">'Cabin'</span>)[<span class="st">'Fare'</span>].mean().sort_values()</span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Cabin
+G     14.205000
+F     18.079367
+N     19.132707
+T     35.500000
+A     41.244314
+D     53.007339
+E     54.564634
+C    107.926598
+B    122.383078
+Name: Fare, dtype: float64</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="co">#Função para determinar cabine para os "N"</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> cabin(i):</span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>    a <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> i<span class="op">&lt;</span><span class="dv">16</span>:  <span class="co">#Estou usando a média dos intervalos como base</span></span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>        a <span class="op">=</span> <span class="st">"G"</span></span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">elif</span> i<span class="op">&gt;=</span><span class="dv">16</span> <span class="kw">and</span> i<span class="op">&lt;</span><span class="dv">27</span>: <span class="co">#35-18 = 17    17/2 = 8.5     18+8.5 = 26.5</span></span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a>        a <span class="op">=</span> <span class="st">"F"</span></span>
+<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">elif</span> i<span class="op">&gt;=</span><span class="dv">27</span> <span class="kw">and</span> i<span class="op">&lt;</span><span class="dv">38</span>:</span>
+<span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a>        a <span class="op">=</span> <span class="st">"T"</span></span>
+<span id="cb24-10"><a href="#cb24-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">elif</span> i<span class="op">&gt;=</span><span class="dv">38</span> <span class="kw">and</span> i<span class="op">&lt;</span><span class="dv">47</span>:</span>
+<span id="cb24-11"><a href="#cb24-11" aria-hidden="true" tabindex="-1"></a>        a <span class="op">=</span> <span class="st">"A"</span></span>
+<span id="cb24-12"><a href="#cb24-12" aria-hidden="true" tabindex="-1"></a>    <span class="cf">elif</span> i<span class="op">&gt;=</span> <span class="dv">47</span> <span class="kw">and</span> i<span class="op">&lt;</span><span class="dv">53</span>:</span>
+<span id="cb24-13"><a href="#cb24-13" aria-hidden="true" tabindex="-1"></a>        a <span class="op">=</span> <span class="st">"E"</span></span>
+<span id="cb24-14"><a href="#cb24-14" aria-hidden="true" tabindex="-1"></a>    <span class="cf">elif</span> i<span class="op">&gt;=</span> <span class="dv">53</span> <span class="kw">and</span> i<span class="op">&lt;</span><span class="dv">54</span>:</span>
+<span id="cb24-15"><a href="#cb24-15" aria-hidden="true" tabindex="-1"></a>        a <span class="op">=</span> <span class="st">"D"</span></span>
+<span id="cb24-16"><a href="#cb24-16" aria-hidden="true" tabindex="-1"></a>    <span class="cf">elif</span> i<span class="op">&gt;=</span><span class="dv">54</span> <span class="kw">and</span> i<span class="op">&lt;</span><span class="dv">116</span>:</span>
+<span id="cb24-17"><a href="#cb24-17" aria-hidden="true" tabindex="-1"></a>        a <span class="op">=</span> <span class="st">'C'</span></span>
+<span id="cb24-18"><a href="#cb24-18" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span>:</span>
+<span id="cb24-19"><a href="#cb24-19" aria-hidden="true" tabindex="-1"></a>        a <span class="op">=</span> <span class="st">"B"</span></span>
+<span id="cb24-20"><a href="#cb24-20" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> a</span>
+<span id="cb24-21"><a href="#cb24-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-22"><a href="#cb24-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-23"><a href="#cb24-23" aria-hidden="true" tabindex="-1"></a><span class="co"># Aplicando a with_N</span></span>
+<span id="cb24-24"><a href="#cb24-24" aria-hidden="true" tabindex="-1"></a>with_n <span class="op">=</span> df[df.Cabin <span class="op">==</span> <span class="st">"N"</span>]</span>
+<span id="cb24-25"><a href="#cb24-25" aria-hidden="true" tabindex="-1"></a>without_n <span class="op">=</span> df[df.Cabin <span class="op">!=</span> <span class="st">"N"</span>]</span>
+<span id="cb24-26"><a href="#cb24-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-27"><a href="#cb24-27" aria-hidden="true" tabindex="-1"></a>with_n[<span class="st">'Cabin'</span>] <span class="op">=</span> with_n.Fare.<span class="bu">apply</span>(<span class="kw">lambda</span> x: cabin(x))</span>
+<span id="cb24-28"><a href="#cb24-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-29"><a href="#cb24-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-30"><a href="#cb24-30" aria-hidden="true" tabindex="-1"></a><span class="co"># Devolvendo os dfs originais</span></span>
+<span id="cb24-31"><a href="#cb24-31" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.concat([with_n, without_n], axis<span class="op">=</span> <span class="dv">0</span>)</span>
+<span id="cb24-32"><a href="#cb24-32" aria-hidden="true" tabindex="-1"></a>df.sort_values(by <span class="op">=</span> <span class="st">'PassengerId'</span>, inplace<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb24-33"><a href="#cb24-33" aria-hidden="true" tabindex="-1"></a>train <span class="op">=</span> df[:<span class="dv">891</span>]</span>
+<span id="cb24-34"><a href="#cb24-34" aria-hidden="true" tabindex="-1"></a>test <span class="op">=</span> df[<span class="dv">891</span>:]</span>
+<span id="cb24-35"><a href="#cb24-35" aria-hidden="true" tabindex="-1"></a>test.reset_index(drop<span class="op">=</span> <span class="va">True</span>, inplace<span class="op">=</span> <span class="va">True</span>)</span>
+<span id="cb24-36"><a href="#cb24-36" aria-hidden="true" tabindex="-1"></a>train[<span class="st">'Survived'</span>] <span class="op">=</span> sobreviventes</span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="fare" class="level4">
+<h4 data-anchor-id="fare">Fare</h4>
+<p>Há apenas um valor faltante em Fare, usarei médias de passageiros com caracteristicas próximas.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>test[test.Fare.isnull()]</span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>     PassengerId  Pclass                Name   Sex  ...  Ticket  Fare  Cabin Embarked
+152         1044       3  Storey, Mr. Thomas  male  ...    3701   NaN      B        S
+
+[1 rows x 11 columns]</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="co">#Pegando média dos valores para passageiros com caracteristicas proximas a "Mr. Thomas"</span></span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>valor <span class="op">=</span> test[(test.Pclass <span class="op">==</span> <span class="dv">3</span>) <span class="op">&amp;</span> </span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>                (test.Embarked <span class="op">==</span> <span class="st">"S"</span>) <span class="op">&amp;</span> </span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>                (test.Sex <span class="op">==</span> <span class="st">"male"</span>)].Fare.mean()</span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a>test.Fare.fillna(valor, inplace<span class="op">=</span><span class="va">True</span>)</span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb28"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>missing_per(train)</span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>             Total      %
+PassengerId      0   0.00
+Pclass           0   0.00
+Name             0   0.00
+Sex              0   0.00
+Age            177  19.87
+SibSp            0   0.00
+Parch            0   0.00
+Ticket           0   0.00
+Fare             0   0.00
+Cabin            0   0.00
+Embarked         0   0.00
+Survived         0   0.00</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb30"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a>missing_per(test)</span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>             Total      %
+PassengerId      0   0.00
+Pclass           0   0.00
+Name             0   0.00
+Sex              0   0.00
+Age             86  20.57
+SibSp            0   0.00
+Parch            0   0.00
+Ticket           0   0.00
+Fare             0   0.00
+Cabin            0   0.00
+Embarked         0   0.00</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb32"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a>train.head().style</span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<style type="text/css">
+</style>
+
+<table id="T_5785d" data-quarto-postprocess="true" class="table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th class="blank level0" data-quarto-table-cell-role="th">&nbsp;</th>
+<th id="T_5785d_level0_col0" class="col_heading level0 col0" data-quarto-table-cell-role="th">PassengerId</th>
+<th id="T_5785d_level0_col1" class="col_heading level0 col1" data-quarto-table-cell-role="th">Pclass</th>
+<th id="T_5785d_level0_col2" class="col_heading level0 col2" data-quarto-table-cell-role="th">Name</th>
+<th id="T_5785d_level0_col3" class="col_heading level0 col3" data-quarto-table-cell-role="th">Sex</th>
+<th id="T_5785d_level0_col4" class="col_heading level0 col4" data-quarto-table-cell-role="th">Age</th>
+<th id="T_5785d_level0_col5" class="col_heading level0 col5" data-quarto-table-cell-role="th">SibSp</th>
+<th id="T_5785d_level0_col6" class="col_heading level0 col6" data-quarto-table-cell-role="th">Parch</th>
+<th id="T_5785d_level0_col7" class="col_heading level0 col7" data-quarto-table-cell-role="th">Ticket</th>
+<th id="T_5785d_level0_col8" class="col_heading level0 col8" data-quarto-table-cell-role="th">Fare</th>
+<th id="T_5785d_level0_col9" class="col_heading level0 col9" data-quarto-table-cell-role="th">Cabin</th>
+<th id="T_5785d_level0_col10" class="col_heading level0 col10" data-quarto-table-cell-role="th">Embarked</th>
+<th id="T_5785d_level0_col11" class="col_heading level0 col11" data-quarto-table-cell-role="th">Survived</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td id="T_5785d_level0_row0" class="row_heading level0 row0" data-quarto-table-cell-role="th">0</td>
+<td id="T_5785d_row0_col0" class="data row0 col0">1</td>
+<td id="T_5785d_row0_col1" class="data row0 col1">3</td>
+<td id="T_5785d_row0_col2" class="data row0 col2">Braund, Mr. Owen Harris</td>
+<td id="T_5785d_row0_col3" class="data row0 col3">male</td>
+<td id="T_5785d_row0_col4" class="data row0 col4">22.000000</td>
+<td id="T_5785d_row0_col5" class="data row0 col5">1</td>
+<td id="T_5785d_row0_col6" class="data row0 col6">0</td>
+<td id="T_5785d_row0_col7" class="data row0 col7">A/5 21171</td>
+<td id="T_5785d_row0_col8" class="data row0 col8">7.250000</td>
+<td id="T_5785d_row0_col9" class="data row0 col9">G</td>
+<td id="T_5785d_row0_col10" class="data row0 col10">S</td>
+<td id="T_5785d_row0_col11" class="data row0 col11">0</td>
+</tr>
+<tr class="even">
+<td id="T_5785d_level0_row1" class="row_heading level0 row1" data-quarto-table-cell-role="th">1</td>
+<td id="T_5785d_row1_col0" class="data row1 col0">2</td>
+<td id="T_5785d_row1_col1" class="data row1 col1">1</td>
+<td id="T_5785d_row1_col2" class="data row1 col2">Cumings, Mrs. John Bradley (Florence Briggs Thayer)</td>
+<td id="T_5785d_row1_col3" class="data row1 col3">female</td>
+<td id="T_5785d_row1_col4" class="data row1 col4">38.000000</td>
+<td id="T_5785d_row1_col5" class="data row1 col5">1</td>
+<td id="T_5785d_row1_col6" class="data row1 col6">0</td>
+<td id="T_5785d_row1_col7" class="data row1 col7">PC 17599</td>
+<td id="T_5785d_row1_col8" class="data row1 col8">71.283300</td>
+<td id="T_5785d_row1_col9" class="data row1 col9">C</td>
+<td id="T_5785d_row1_col10" class="data row1 col10">C</td>
+<td id="T_5785d_row1_col11" class="data row1 col11">1</td>
+</tr>
+<tr class="odd">
+<td id="T_5785d_level0_row2" class="row_heading level0 row2" data-quarto-table-cell-role="th">2</td>
+<td id="T_5785d_row2_col0" class="data row2 col0">3</td>
+<td id="T_5785d_row2_col1" class="data row2 col1">3</td>
+<td id="T_5785d_row2_col2" class="data row2 col2">Heikkinen, Miss. Laina</td>
+<td id="T_5785d_row2_col3" class="data row2 col3">female</td>
+<td id="T_5785d_row2_col4" class="data row2 col4">26.000000</td>
+<td id="T_5785d_row2_col5" class="data row2 col5">0</td>
+<td id="T_5785d_row2_col6" class="data row2 col6">0</td>
+<td id="T_5785d_row2_col7" class="data row2 col7">STON/O2. 3101282</td>
+<td id="T_5785d_row2_col8" class="data row2 col8">7.925000</td>
+<td id="T_5785d_row2_col9" class="data row2 col9">G</td>
+<td id="T_5785d_row2_col10" class="data row2 col10">S</td>
+<td id="T_5785d_row2_col11" class="data row2 col11">1</td>
+</tr>
+<tr class="even">
+<td id="T_5785d_level0_row3" class="row_heading level0 row3" data-quarto-table-cell-role="th">3</td>
+<td id="T_5785d_row3_col0" class="data row3 col0">4</td>
+<td id="T_5785d_row3_col1" class="data row3 col1">1</td>
+<td id="T_5785d_row3_col2" class="data row3 col2">Futrelle, Mrs. Jacques Heath (Lily May Peel)</td>
+<td id="T_5785d_row3_col3" class="data row3 col3">female</td>
+<td id="T_5785d_row3_col4" class="data row3 col4">35.000000</td>
+<td id="T_5785d_row3_col5" class="data row3 col5">1</td>
+<td id="T_5785d_row3_col6" class="data row3 col6">0</td>
+<td id="T_5785d_row3_col7" class="data row3 col7">113803</td>
+<td id="T_5785d_row3_col8" class="data row3 col8">53.100000</td>
+<td id="T_5785d_row3_col9" class="data row3 col9">C</td>
+<td id="T_5785d_row3_col10" class="data row3 col10">S</td>
+<td id="T_5785d_row3_col11" class="data row3 col11">1</td>
+</tr>
+<tr class="odd">
+<td id="T_5785d_level0_row4" class="row_heading level0 row4" data-quarto-table-cell-role="th">4</td>
+<td id="T_5785d_row4_col0" class="data row4 col0">5</td>
+<td id="T_5785d_row4_col1" class="data row4 col1">3</td>
+<td id="T_5785d_row4_col2" class="data row4 col2">Allen, Mr. William Henry</td>
+<td id="T_5785d_row4_col3" class="data row4 col3">male</td>
+<td id="T_5785d_row4_col4" class="data row4 col4">35.000000</td>
+<td id="T_5785d_row4_col5" class="data row4 col5">0</td>
+<td id="T_5785d_row4_col6" class="data row4 col6">0</td>
+<td id="T_5785d_row4_col7" class="data row4 col7">373450</td>
+<td id="T_5785d_row4_col8" class="data row4 col8">8.050000</td>
+<td id="T_5785d_row4_col9" class="data row4 col9">G</td>
+<td id="T_5785d_row4_col10" class="data row4 col10">S</td>
+<td id="T_5785d_row4_col11" class="data row4 col11">0</td>
+</tr>
+</tbody>
+</table>
+
+
+</div>
+<div class="sourceCode cell-code" id="cb33"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a>test.head().style</span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<style type="text/css">
+</style>
+
+<table id="T_22dd7" data-quarto-postprocess="true" class="table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th class="blank level0" data-quarto-table-cell-role="th">&nbsp;</th>
+<th id="T_22dd7_level0_col0" class="col_heading level0 col0" data-quarto-table-cell-role="th">PassengerId</th>
+<th id="T_22dd7_level0_col1" class="col_heading level0 col1" data-quarto-table-cell-role="th">Pclass</th>
+<th id="T_22dd7_level0_col2" class="col_heading level0 col2" data-quarto-table-cell-role="th">Name</th>
+<th id="T_22dd7_level0_col3" class="col_heading level0 col3" data-quarto-table-cell-role="th">Sex</th>
+<th id="T_22dd7_level0_col4" class="col_heading level0 col4" data-quarto-table-cell-role="th">Age</th>
+<th id="T_22dd7_level0_col5" class="col_heading level0 col5" data-quarto-table-cell-role="th">SibSp</th>
+<th id="T_22dd7_level0_col6" class="col_heading level0 col6" data-quarto-table-cell-role="th">Parch</th>
+<th id="T_22dd7_level0_col7" class="col_heading level0 col7" data-quarto-table-cell-role="th">Ticket</th>
+<th id="T_22dd7_level0_col8" class="col_heading level0 col8" data-quarto-table-cell-role="th">Fare</th>
+<th id="T_22dd7_level0_col9" class="col_heading level0 col9" data-quarto-table-cell-role="th">Cabin</th>
+<th id="T_22dd7_level0_col10" class="col_heading level0 col10" data-quarto-table-cell-role="th">Embarked</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td id="T_22dd7_level0_row0" class="row_heading level0 row0" data-quarto-table-cell-role="th">0</td>
+<td id="T_22dd7_row0_col0" class="data row0 col0">892</td>
+<td id="T_22dd7_row0_col1" class="data row0 col1">3</td>
+<td id="T_22dd7_row0_col2" class="data row0 col2">Kelly, Mr. James</td>
+<td id="T_22dd7_row0_col3" class="data row0 col3">male</td>
+<td id="T_22dd7_row0_col4" class="data row0 col4">34.500000</td>
+<td id="T_22dd7_row0_col5" class="data row0 col5">0</td>
+<td id="T_22dd7_row0_col6" class="data row0 col6">0</td>
+<td id="T_22dd7_row0_col7" class="data row0 col7">330911</td>
+<td id="T_22dd7_row0_col8" class="data row0 col8">7.829200</td>
+<td id="T_22dd7_row0_col9" class="data row0 col9">G</td>
+<td id="T_22dd7_row0_col10" class="data row0 col10">Q</td>
+</tr>
+<tr class="even">
+<td id="T_22dd7_level0_row1" class="row_heading level0 row1" data-quarto-table-cell-role="th">1</td>
+<td id="T_22dd7_row1_col0" class="data row1 col0">893</td>
+<td id="T_22dd7_row1_col1" class="data row1 col1">3</td>
+<td id="T_22dd7_row1_col2" class="data row1 col2">Wilkes, Mrs. James (Ellen Needs)</td>
+<td id="T_22dd7_row1_col3" class="data row1 col3">female</td>
+<td id="T_22dd7_row1_col4" class="data row1 col4">47.000000</td>
+<td id="T_22dd7_row1_col5" class="data row1 col5">1</td>
+<td id="T_22dd7_row1_col6" class="data row1 col6">0</td>
+<td id="T_22dd7_row1_col7" class="data row1 col7">363272</td>
+<td id="T_22dd7_row1_col8" class="data row1 col8">7.000000</td>
+<td id="T_22dd7_row1_col9" class="data row1 col9">G</td>
+<td id="T_22dd7_row1_col10" class="data row1 col10">S</td>
+</tr>
+<tr class="odd">
+<td id="T_22dd7_level0_row2" class="row_heading level0 row2" data-quarto-table-cell-role="th">2</td>
+<td id="T_22dd7_row2_col0" class="data row2 col0">894</td>
+<td id="T_22dd7_row2_col1" class="data row2 col1">2</td>
+<td id="T_22dd7_row2_col2" class="data row2 col2">Myles, Mr. Thomas Francis</td>
+<td id="T_22dd7_row2_col3" class="data row2 col3">male</td>
+<td id="T_22dd7_row2_col4" class="data row2 col4">62.000000</td>
+<td id="T_22dd7_row2_col5" class="data row2 col5">0</td>
+<td id="T_22dd7_row2_col6" class="data row2 col6">0</td>
+<td id="T_22dd7_row2_col7" class="data row2 col7">240276</td>
+<td id="T_22dd7_row2_col8" class="data row2 col8">9.687500</td>
+<td id="T_22dd7_row2_col9" class="data row2 col9">G</td>
+<td id="T_22dd7_row2_col10" class="data row2 col10">Q</td>
+</tr>
+<tr class="even">
+<td id="T_22dd7_level0_row3" class="row_heading level0 row3" data-quarto-table-cell-role="th">3</td>
+<td id="T_22dd7_row3_col0" class="data row3 col0">895</td>
+<td id="T_22dd7_row3_col1" class="data row3 col1">3</td>
+<td id="T_22dd7_row3_col2" class="data row3 col2">Wirz, Mr. Albert</td>
+<td id="T_22dd7_row3_col3" class="data row3 col3">male</td>
+<td id="T_22dd7_row3_col4" class="data row3 col4">27.000000</td>
+<td id="T_22dd7_row3_col5" class="data row3 col5">0</td>
+<td id="T_22dd7_row3_col6" class="data row3 col6">0</td>
+<td id="T_22dd7_row3_col7" class="data row3 col7">315154</td>
+<td id="T_22dd7_row3_col8" class="data row3 col8">8.662500</td>
+<td id="T_22dd7_row3_col9" class="data row3 col9">G</td>
+<td id="T_22dd7_row3_col10" class="data row3 col10">S</td>
+</tr>
+<tr class="odd">
+<td id="T_22dd7_level0_row4" class="row_heading level0 row4" data-quarto-table-cell-role="th">4</td>
+<td id="T_22dd7_row4_col0" class="data row4 col0">896</td>
+<td id="T_22dd7_row4_col1" class="data row4 col1">3</td>
+<td id="T_22dd7_row4_col2" class="data row4 col2">Hirvonen, Mrs. Alexander (Helga E Lindqvist)</td>
+<td id="T_22dd7_row4_col3" class="data row4 col3">female</td>
+<td id="T_22dd7_row4_col4" class="data row4 col4">22.000000</td>
+<td id="T_22dd7_row4_col5" class="data row4 col5">1</td>
+<td id="T_22dd7_row4_col6" class="data row4 col6">1</td>
+<td id="T_22dd7_row4_col7" class="data row4 col7">3101298</td>
+<td id="T_22dd7_row4_col8" class="data row4 col8">12.287500</td>
+<td id="T_22dd7_row4_col9" class="data row4 col9">G</td>
+<td id="T_22dd7_row4_col10" class="data row4 col10">S</td>
+</tr>
+</tbody>
+</table>
+
+
+</div>
+</div>
+</section>
+</section>
+<section id="codificando-variáveis-categóricas" class="level2" data-number="2.2">
+<h2 data-number="2.2" data-anchor-id="codificando-variáveis-categóricas"><span class="header-section-number">2.2</span> Codificando variáveis categóricas</h2>
+<p><code>Sex</code>, <code>Embarked</code> e <code>Cabin</code> precisam ser convertidas para números.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb34"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a>ohe <span class="op">=</span> OneHotEncoder(sparse_output<span class="op">=</span> <span class="va">False</span>)</span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> encoder(df, cols):</span>
+<span id="cb34-4"><a href="#cb34-4" aria-hidden="true" tabindex="-1"></a>  features_array <span class="op">=</span> ohe.fit_transform(df[cols])</span>
+<span id="cb34-5"><a href="#cb34-5" aria-hidden="true" tabindex="-1"></a>  features_labels <span class="op">=</span> np.concatenate(ohe.categories_)</span>
+<span id="cb34-6"><a href="#cb34-6" aria-hidden="true" tabindex="-1"></a>  features_df <span class="op">=</span> pd.DataFrame(features_array, columns<span class="op">=</span> features_labels)</span>
+<span id="cb34-7"><a href="#cb34-7" aria-hidden="true" tabindex="-1"></a>  <span class="cf">return</span> features_df</span>
+<span id="cb34-8"><a href="#cb34-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-9"><a href="#cb34-9" aria-hidden="true" tabindex="-1"></a>cols <span class="op">=</span> [<span class="st">'Sex'</span>, <span class="st">'Embarked'</span>, <span class="st">'Cabin'</span>]</span>
+<span id="cb34-10"><a href="#cb34-10" aria-hidden="true" tabindex="-1"></a>features_train <span class="op">=</span> encoder(train, cols)</span>
+<span id="cb34-11"><a href="#cb34-11" aria-hidden="true" tabindex="-1"></a>features_test <span class="op">=</span> encoder(test, cols)</span>
+<span id="cb34-12"><a href="#cb34-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-13"><a href="#cb34-13" aria-hidden="true" tabindex="-1"></a>train <span class="op">=</span> pd.concat([train, features_train], axis<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb34-14"><a href="#cb34-14" aria-hidden="true" tabindex="-1"></a>test <span class="op">=</span> pd.concat([test, features_test], axis<span class="op">=</span><span class="dv">1</span>)</span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb35"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a>train.head().style</span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<style type="text/css">
+</style>
+
+<table id="T_9c217" data-quarto-postprocess="true" class="table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th class="blank level0" data-quarto-table-cell-role="th">&nbsp;</th>
+<th id="T_9c217_level0_col0" class="col_heading level0 col0" data-quarto-table-cell-role="th">PassengerId</th>
+<th id="T_9c217_level0_col1" class="col_heading level0 col1" data-quarto-table-cell-role="th">Pclass</th>
+<th id="T_9c217_level0_col2" class="col_heading level0 col2" data-quarto-table-cell-role="th">Name</th>
+<th id="T_9c217_level0_col3" class="col_heading level0 col3" data-quarto-table-cell-role="th">Sex</th>
+<th id="T_9c217_level0_col4" class="col_heading level0 col4" data-quarto-table-cell-role="th">Age</th>
+<th id="T_9c217_level0_col5" class="col_heading level0 col5" data-quarto-table-cell-role="th">SibSp</th>
+<th id="T_9c217_level0_col6" class="col_heading level0 col6" data-quarto-table-cell-role="th">Parch</th>
+<th id="T_9c217_level0_col7" class="col_heading level0 col7" data-quarto-table-cell-role="th">Ticket</th>
+<th id="T_9c217_level0_col8" class="col_heading level0 col8" data-quarto-table-cell-role="th">Fare</th>
+<th id="T_9c217_level0_col9" class="col_heading level0 col9" data-quarto-table-cell-role="th">Cabin</th>
+<th id="T_9c217_level0_col10" class="col_heading level0 col10" data-quarto-table-cell-role="th">Embarked</th>
+<th id="T_9c217_level0_col11" class="col_heading level0 col11" data-quarto-table-cell-role="th">Survived</th>
+<th id="T_9c217_level0_col12" class="col_heading level0 col12" data-quarto-table-cell-role="th">female</th>
+<th id="T_9c217_level0_col13" class="col_heading level0 col13" data-quarto-table-cell-role="th">male</th>
+<th id="T_9c217_level0_col14" class="col_heading level0 col14" data-quarto-table-cell-role="th">C</th>
+<th id="T_9c217_level0_col15" class="col_heading level0 col15" data-quarto-table-cell-role="th">Q</th>
+<th id="T_9c217_level0_col16" class="col_heading level0 col16" data-quarto-table-cell-role="th">S</th>
+<th id="T_9c217_level0_col17" class="col_heading level0 col17" data-quarto-table-cell-role="th">A</th>
+<th id="T_9c217_level0_col18" class="col_heading level0 col18" data-quarto-table-cell-role="th">B</th>
+<th id="T_9c217_level0_col19" class="col_heading level0 col19" data-quarto-table-cell-role="th">C</th>
+<th id="T_9c217_level0_col20" class="col_heading level0 col20" data-quarto-table-cell-role="th">D</th>
+<th id="T_9c217_level0_col21" class="col_heading level0 col21" data-quarto-table-cell-role="th">E</th>
+<th id="T_9c217_level0_col22" class="col_heading level0 col22" data-quarto-table-cell-role="th">F</th>
+<th id="T_9c217_level0_col23" class="col_heading level0 col23" data-quarto-table-cell-role="th">G</th>
+<th id="T_9c217_level0_col24" class="col_heading level0 col24" data-quarto-table-cell-role="th">T</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td id="T_9c217_level0_row0" class="row_heading level0 row0" data-quarto-table-cell-role="th">0</td>
+<td id="T_9c217_row0_col0" class="data row0 col0">1</td>
+<td id="T_9c217_row0_col1" class="data row0 col1">3</td>
+<td id="T_9c217_row0_col2" class="data row0 col2">Braund, Mr. Owen Harris</td>
+<td id="T_9c217_row0_col3" class="data row0 col3">male</td>
+<td id="T_9c217_row0_col4" class="data row0 col4">22.000000</td>
+<td id="T_9c217_row0_col5" class="data row0 col5">1</td>
+<td id="T_9c217_row0_col6" class="data row0 col6">0</td>
+<td id="T_9c217_row0_col7" class="data row0 col7">A/5 21171</td>
+<td id="T_9c217_row0_col8" class="data row0 col8">7.250000</td>
+<td id="T_9c217_row0_col9" class="data row0 col9">G</td>
+<td id="T_9c217_row0_col10" class="data row0 col10">S</td>
+<td id="T_9c217_row0_col11" class="data row0 col11">0</td>
+<td id="T_9c217_row0_col12" class="data row0 col12">0.000000</td>
+<td id="T_9c217_row0_col13" class="data row0 col13">1.000000</td>
+<td id="T_9c217_row0_col14" class="data row0 col14">0.000000</td>
+<td id="T_9c217_row0_col15" class="data row0 col15">0.000000</td>
+<td id="T_9c217_row0_col16" class="data row0 col16">1.000000</td>
+<td id="T_9c217_row0_col17" class="data row0 col17">0.000000</td>
+<td id="T_9c217_row0_col18" class="data row0 col18">0.000000</td>
+<td id="T_9c217_row0_col19" class="data row0 col19">0.000000</td>
+<td id="T_9c217_row0_col20" class="data row0 col20">0.000000</td>
+<td id="T_9c217_row0_col21" class="data row0 col21">0.000000</td>
+<td id="T_9c217_row0_col22" class="data row0 col22">0.000000</td>
+<td id="T_9c217_row0_col23" class="data row0 col23">1.000000</td>
+<td id="T_9c217_row0_col24" class="data row0 col24">0.000000</td>
+</tr>
+<tr class="even">
+<td id="T_9c217_level0_row1" class="row_heading level0 row1" data-quarto-table-cell-role="th">1</td>
+<td id="T_9c217_row1_col0" class="data row1 col0">2</td>
+<td id="T_9c217_row1_col1" class="data row1 col1">1</td>
+<td id="T_9c217_row1_col2" class="data row1 col2">Cumings, Mrs. John Bradley (Florence Briggs Thayer)</td>
+<td id="T_9c217_row1_col3" class="data row1 col3">female</td>
+<td id="T_9c217_row1_col4" class="data row1 col4">38.000000</td>
+<td id="T_9c217_row1_col5" class="data row1 col5">1</td>
+<td id="T_9c217_row1_col6" class="data row1 col6">0</td>
+<td id="T_9c217_row1_col7" class="data row1 col7">PC 17599</td>
+<td id="T_9c217_row1_col8" class="data row1 col8">71.283300</td>
+<td id="T_9c217_row1_col9" class="data row1 col9">C</td>
+<td id="T_9c217_row1_col10" class="data row1 col10">C</td>
+<td id="T_9c217_row1_col11" class="data row1 col11">1</td>
+<td id="T_9c217_row1_col12" class="data row1 col12">1.000000</td>
+<td id="T_9c217_row1_col13" class="data row1 col13">0.000000</td>
+<td id="T_9c217_row1_col14" class="data row1 col14">1.000000</td>
+<td id="T_9c217_row1_col15" class="data row1 col15">0.000000</td>
+<td id="T_9c217_row1_col16" class="data row1 col16">0.000000</td>
+<td id="T_9c217_row1_col17" class="data row1 col17">0.000000</td>
+<td id="T_9c217_row1_col18" class="data row1 col18">0.000000</td>
+<td id="T_9c217_row1_col19" class="data row1 col19">1.000000</td>
+<td id="T_9c217_row1_col20" class="data row1 col20">0.000000</td>
+<td id="T_9c217_row1_col21" class="data row1 col21">0.000000</td>
+<td id="T_9c217_row1_col22" class="data row1 col22">0.000000</td>
+<td id="T_9c217_row1_col23" class="data row1 col23">0.000000</td>
+<td id="T_9c217_row1_col24" class="data row1 col24">0.000000</td>
+</tr>
+<tr class="odd">
+<td id="T_9c217_level0_row2" class="row_heading level0 row2" data-quarto-table-cell-role="th">2</td>
+<td id="T_9c217_row2_col0" class="data row2 col0">3</td>
+<td id="T_9c217_row2_col1" class="data row2 col1">3</td>
+<td id="T_9c217_row2_col2" class="data row2 col2">Heikkinen, Miss. Laina</td>
+<td id="T_9c217_row2_col3" class="data row2 col3">female</td>
+<td id="T_9c217_row2_col4" class="data row2 col4">26.000000</td>
+<td id="T_9c217_row2_col5" class="data row2 col5">0</td>
+<td id="T_9c217_row2_col6" class="data row2 col6">0</td>
+<td id="T_9c217_row2_col7" class="data row2 col7">STON/O2. 3101282</td>
+<td id="T_9c217_row2_col8" class="data row2 col8">7.925000</td>
+<td id="T_9c217_row2_col9" class="data row2 col9">G</td>
+<td id="T_9c217_row2_col10" class="data row2 col10">S</td>
+<td id="T_9c217_row2_col11" class="data row2 col11">1</td>
+<td id="T_9c217_row2_col12" class="data row2 col12">1.000000</td>
+<td id="T_9c217_row2_col13" class="data row2 col13">0.000000</td>
+<td id="T_9c217_row2_col14" class="data row2 col14">0.000000</td>
+<td id="T_9c217_row2_col15" class="data row2 col15">0.000000</td>
+<td id="T_9c217_row2_col16" class="data row2 col16">1.000000</td>
+<td id="T_9c217_row2_col17" class="data row2 col17">0.000000</td>
+<td id="T_9c217_row2_col18" class="data row2 col18">0.000000</td>
+<td id="T_9c217_row2_col19" class="data row2 col19">0.000000</td>
+<td id="T_9c217_row2_col20" class="data row2 col20">0.000000</td>
+<td id="T_9c217_row2_col21" class="data row2 col21">0.000000</td>
+<td id="T_9c217_row2_col22" class="data row2 col22">0.000000</td>
+<td id="T_9c217_row2_col23" class="data row2 col23">1.000000</td>
+<td id="T_9c217_row2_col24" class="data row2 col24">0.000000</td>
+</tr>
+<tr class="even">
+<td id="T_9c217_level0_row3" class="row_heading level0 row3" data-quarto-table-cell-role="th">3</td>
+<td id="T_9c217_row3_col0" class="data row3 col0">4</td>
+<td id="T_9c217_row3_col1" class="data row3 col1">1</td>
+<td id="T_9c217_row3_col2" class="data row3 col2">Futrelle, Mrs. Jacques Heath (Lily May Peel)</td>
+<td id="T_9c217_row3_col3" class="data row3 col3">female</td>
+<td id="T_9c217_row3_col4" class="data row3 col4">35.000000</td>
+<td id="T_9c217_row3_col5" class="data row3 col5">1</td>
+<td id="T_9c217_row3_col6" class="data row3 col6">0</td>
+<td id="T_9c217_row3_col7" class="data row3 col7">113803</td>
+<td id="T_9c217_row3_col8" class="data row3 col8">53.100000</td>
+<td id="T_9c217_row3_col9" class="data row3 col9">C</td>
+<td id="T_9c217_row3_col10" class="data row3 col10">S</td>
+<td id="T_9c217_row3_col11" class="data row3 col11">1</td>
+<td id="T_9c217_row3_col12" class="data row3 col12">1.000000</td>
+<td id="T_9c217_row3_col13" class="data row3 col13">0.000000</td>
+<td id="T_9c217_row3_col14" class="data row3 col14">0.000000</td>
+<td id="T_9c217_row3_col15" class="data row3 col15">0.000000</td>
+<td id="T_9c217_row3_col16" class="data row3 col16">1.000000</td>
+<td id="T_9c217_row3_col17" class="data row3 col17">0.000000</td>
+<td id="T_9c217_row3_col18" class="data row3 col18">0.000000</td>
+<td id="T_9c217_row3_col19" class="data row3 col19">1.000000</td>
+<td id="T_9c217_row3_col20" class="data row3 col20">0.000000</td>
+<td id="T_9c217_row3_col21" class="data row3 col21">0.000000</td>
+<td id="T_9c217_row3_col22" class="data row3 col22">0.000000</td>
+<td id="T_9c217_row3_col23" class="data row3 col23">0.000000</td>
+<td id="T_9c217_row3_col24" class="data row3 col24">0.000000</td>
+</tr>
+<tr class="odd">
+<td id="T_9c217_level0_row4" class="row_heading level0 row4" data-quarto-table-cell-role="th">4</td>
+<td id="T_9c217_row4_col0" class="data row4 col0">5</td>
+<td id="T_9c217_row4_col1" class="data row4 col1">3</td>
+<td id="T_9c217_row4_col2" class="data row4 col2">Allen, Mr. William Henry</td>
+<td id="T_9c217_row4_col3" class="data row4 col3">male</td>
+<td id="T_9c217_row4_col4" class="data row4 col4">35.000000</td>
+<td id="T_9c217_row4_col5" class="data row4 col5">0</td>
+<td id="T_9c217_row4_col6" class="data row4 col6">0</td>
+<td id="T_9c217_row4_col7" class="data row4 col7">373450</td>
+<td id="T_9c217_row4_col8" class="data row4 col8">8.050000</td>
+<td id="T_9c217_row4_col9" class="data row4 col9">G</td>
+<td id="T_9c217_row4_col10" class="data row4 col10">S</td>
+<td id="T_9c217_row4_col11" class="data row4 col11">0</td>
+<td id="T_9c217_row4_col12" class="data row4 col12">0.000000</td>
+<td id="T_9c217_row4_col13" class="data row4 col13">1.000000</td>
+<td id="T_9c217_row4_col14" class="data row4 col14">0.000000</td>
+<td id="T_9c217_row4_col15" class="data row4 col15">0.000000</td>
+<td id="T_9c217_row4_col16" class="data row4 col16">1.000000</td>
+<td id="T_9c217_row4_col17" class="data row4 col17">0.000000</td>
+<td id="T_9c217_row4_col18" class="data row4 col18">0.000000</td>
+<td id="T_9c217_row4_col19" class="data row4 col19">0.000000</td>
+<td id="T_9c217_row4_col20" class="data row4 col20">0.000000</td>
+<td id="T_9c217_row4_col21" class="data row4 col21">0.000000</td>
+<td id="T_9c217_row4_col22" class="data row4 col22">0.000000</td>
+<td id="T_9c217_row4_col23" class="data row4 col23">1.000000</td>
+<td id="T_9c217_row4_col24" class="data row4 col24">0.000000</td>
+</tr>
+</tbody>
+</table>
+
+
+</div>
+<div class="sourceCode cell-code" id="cb36"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a>test.head().style</span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<style type="text/css">
+</style>
+
+<table id="T_3cd74" data-quarto-postprocess="true" class="table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th class="blank level0" data-quarto-table-cell-role="th">&nbsp;</th>
+<th id="T_3cd74_level0_col0" class="col_heading level0 col0" data-quarto-table-cell-role="th">PassengerId</th>
+<th id="T_3cd74_level0_col1" class="col_heading level0 col1" data-quarto-table-cell-role="th">Pclass</th>
+<th id="T_3cd74_level0_col2" class="col_heading level0 col2" data-quarto-table-cell-role="th">Name</th>
+<th id="T_3cd74_level0_col3" class="col_heading level0 col3" data-quarto-table-cell-role="th">Sex</th>
+<th id="T_3cd74_level0_col4" class="col_heading level0 col4" data-quarto-table-cell-role="th">Age</th>
+<th id="T_3cd74_level0_col5" class="col_heading level0 col5" data-quarto-table-cell-role="th">SibSp</th>
+<th id="T_3cd74_level0_col6" class="col_heading level0 col6" data-quarto-table-cell-role="th">Parch</th>
+<th id="T_3cd74_level0_col7" class="col_heading level0 col7" data-quarto-table-cell-role="th">Ticket</th>
+<th id="T_3cd74_level0_col8" class="col_heading level0 col8" data-quarto-table-cell-role="th">Fare</th>
+<th id="T_3cd74_level0_col9" class="col_heading level0 col9" data-quarto-table-cell-role="th">Cabin</th>
+<th id="T_3cd74_level0_col10" class="col_heading level0 col10" data-quarto-table-cell-role="th">Embarked</th>
+<th id="T_3cd74_level0_col11" class="col_heading level0 col11" data-quarto-table-cell-role="th">female</th>
+<th id="T_3cd74_level0_col12" class="col_heading level0 col12" data-quarto-table-cell-role="th">male</th>
+<th id="T_3cd74_level0_col13" class="col_heading level0 col13" data-quarto-table-cell-role="th">C</th>
+<th id="T_3cd74_level0_col14" class="col_heading level0 col14" data-quarto-table-cell-role="th">Q</th>
+<th id="T_3cd74_level0_col15" class="col_heading level0 col15" data-quarto-table-cell-role="th">S</th>
+<th id="T_3cd74_level0_col16" class="col_heading level0 col16" data-quarto-table-cell-role="th">A</th>
+<th id="T_3cd74_level0_col17" class="col_heading level0 col17" data-quarto-table-cell-role="th">B</th>
+<th id="T_3cd74_level0_col18" class="col_heading level0 col18" data-quarto-table-cell-role="th">C</th>
+<th id="T_3cd74_level0_col19" class="col_heading level0 col19" data-quarto-table-cell-role="th">D</th>
+<th id="T_3cd74_level0_col20" class="col_heading level0 col20" data-quarto-table-cell-role="th">E</th>
+<th id="T_3cd74_level0_col21" class="col_heading level0 col21" data-quarto-table-cell-role="th">F</th>
+<th id="T_3cd74_level0_col22" class="col_heading level0 col22" data-quarto-table-cell-role="th">G</th>
+<th id="T_3cd74_level0_col23" class="col_heading level0 col23" data-quarto-table-cell-role="th">T</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td id="T_3cd74_level0_row0" class="row_heading level0 row0" data-quarto-table-cell-role="th">0</td>
+<td id="T_3cd74_row0_col0" class="data row0 col0">892</td>
+<td id="T_3cd74_row0_col1" class="data row0 col1">3</td>
+<td id="T_3cd74_row0_col2" class="data row0 col2">Kelly, Mr. James</td>
+<td id="T_3cd74_row0_col3" class="data row0 col3">male</td>
+<td id="T_3cd74_row0_col4" class="data row0 col4">34.500000</td>
+<td id="T_3cd74_row0_col5" class="data row0 col5">0</td>
+<td id="T_3cd74_row0_col6" class="data row0 col6">0</td>
+<td id="T_3cd74_row0_col7" class="data row0 col7">330911</td>
+<td id="T_3cd74_row0_col8" class="data row0 col8">7.829200</td>
+<td id="T_3cd74_row0_col9" class="data row0 col9">G</td>
+<td id="T_3cd74_row0_col10" class="data row0 col10">Q</td>
+<td id="T_3cd74_row0_col11" class="data row0 col11">0.000000</td>
+<td id="T_3cd74_row0_col12" class="data row0 col12">1.000000</td>
+<td id="T_3cd74_row0_col13" class="data row0 col13">0.000000</td>
+<td id="T_3cd74_row0_col14" class="data row0 col14">1.000000</td>
+<td id="T_3cd74_row0_col15" class="data row0 col15">0.000000</td>
+<td id="T_3cd74_row0_col16" class="data row0 col16">0.000000</td>
+<td id="T_3cd74_row0_col17" class="data row0 col17">0.000000</td>
+<td id="T_3cd74_row0_col18" class="data row0 col18">0.000000</td>
+<td id="T_3cd74_row0_col19" class="data row0 col19">0.000000</td>
+<td id="T_3cd74_row0_col20" class="data row0 col20">0.000000</td>
+<td id="T_3cd74_row0_col21" class="data row0 col21">0.000000</td>
+<td id="T_3cd74_row0_col22" class="data row0 col22">1.000000</td>
+<td id="T_3cd74_row0_col23" class="data row0 col23">0.000000</td>
+</tr>
+<tr class="even">
+<td id="T_3cd74_level0_row1" class="row_heading level0 row1" data-quarto-table-cell-role="th">1</td>
+<td id="T_3cd74_row1_col0" class="data row1 col0">893</td>
+<td id="T_3cd74_row1_col1" class="data row1 col1">3</td>
+<td id="T_3cd74_row1_col2" class="data row1 col2">Wilkes, Mrs. James (Ellen Needs)</td>
+<td id="T_3cd74_row1_col3" class="data row1 col3">female</td>
+<td id="T_3cd74_row1_col4" class="data row1 col4">47.000000</td>
+<td id="T_3cd74_row1_col5" class="data row1 col5">1</td>
+<td id="T_3cd74_row1_col6" class="data row1 col6">0</td>
+<td id="T_3cd74_row1_col7" class="data row1 col7">363272</td>
+<td id="T_3cd74_row1_col8" class="data row1 col8">7.000000</td>
+<td id="T_3cd74_row1_col9" class="data row1 col9">G</td>
+<td id="T_3cd74_row1_col10" class="data row1 col10">S</td>
+<td id="T_3cd74_row1_col11" class="data row1 col11">1.000000</td>
+<td id="T_3cd74_row1_col12" class="data row1 col12">0.000000</td>
+<td id="T_3cd74_row1_col13" class="data row1 col13">0.000000</td>
+<td id="T_3cd74_row1_col14" class="data row1 col14">0.000000</td>
+<td id="T_3cd74_row1_col15" class="data row1 col15">1.000000</td>
+<td id="T_3cd74_row1_col16" class="data row1 col16">0.000000</td>
+<td id="T_3cd74_row1_col17" class="data row1 col17">0.000000</td>
+<td id="T_3cd74_row1_col18" class="data row1 col18">0.000000</td>
+<td id="T_3cd74_row1_col19" class="data row1 col19">0.000000</td>
+<td id="T_3cd74_row1_col20" class="data row1 col20">0.000000</td>
+<td id="T_3cd74_row1_col21" class="data row1 col21">0.000000</td>
+<td id="T_3cd74_row1_col22" class="data row1 col22">1.000000</td>
+<td id="T_3cd74_row1_col23" class="data row1 col23">0.000000</td>
+</tr>
+<tr class="odd">
+<td id="T_3cd74_level0_row2" class="row_heading level0 row2" data-quarto-table-cell-role="th">2</td>
+<td id="T_3cd74_row2_col0" class="data row2 col0">894</td>
+<td id="T_3cd74_row2_col1" class="data row2 col1">2</td>
+<td id="T_3cd74_row2_col2" class="data row2 col2">Myles, Mr. Thomas Francis</td>
+<td id="T_3cd74_row2_col3" class="data row2 col3">male</td>
+<td id="T_3cd74_row2_col4" class="data row2 col4">62.000000</td>
+<td id="T_3cd74_row2_col5" class="data row2 col5">0</td>
+<td id="T_3cd74_row2_col6" class="data row2 col6">0</td>
+<td id="T_3cd74_row2_col7" class="data row2 col7">240276</td>
+<td id="T_3cd74_row2_col8" class="data row2 col8">9.687500</td>
+<td id="T_3cd74_row2_col9" class="data row2 col9">G</td>
+<td id="T_3cd74_row2_col10" class="data row2 col10">Q</td>
+<td id="T_3cd74_row2_col11" class="data row2 col11">0.000000</td>
+<td id="T_3cd74_row2_col12" class="data row2 col12">1.000000</td>
+<td id="T_3cd74_row2_col13" class="data row2 col13">0.000000</td>
+<td id="T_3cd74_row2_col14" class="data row2 col14">1.000000</td>
+<td id="T_3cd74_row2_col15" class="data row2 col15">0.000000</td>
+<td id="T_3cd74_row2_col16" class="data row2 col16">0.000000</td>
+<td id="T_3cd74_row2_col17" class="data row2 col17">0.000000</td>
+<td id="T_3cd74_row2_col18" class="data row2 col18">0.000000</td>
+<td id="T_3cd74_row2_col19" class="data row2 col19">0.000000</td>
+<td id="T_3cd74_row2_col20" class="data row2 col20">0.000000</td>
+<td id="T_3cd74_row2_col21" class="data row2 col21">0.000000</td>
+<td id="T_3cd74_row2_col22" class="data row2 col22">1.000000</td>
+<td id="T_3cd74_row2_col23" class="data row2 col23">0.000000</td>
+</tr>
+<tr class="even">
+<td id="T_3cd74_level0_row3" class="row_heading level0 row3" data-quarto-table-cell-role="th">3</td>
+<td id="T_3cd74_row3_col0" class="data row3 col0">895</td>
+<td id="T_3cd74_row3_col1" class="data row3 col1">3</td>
+<td id="T_3cd74_row3_col2" class="data row3 col2">Wirz, Mr. Albert</td>
+<td id="T_3cd74_row3_col3" class="data row3 col3">male</td>
+<td id="T_3cd74_row3_col4" class="data row3 col4">27.000000</td>
+<td id="T_3cd74_row3_col5" class="data row3 col5">0</td>
+<td id="T_3cd74_row3_col6" class="data row3 col6">0</td>
+<td id="T_3cd74_row3_col7" class="data row3 col7">315154</td>
+<td id="T_3cd74_row3_col8" class="data row3 col8">8.662500</td>
+<td id="T_3cd74_row3_col9" class="data row3 col9">G</td>
+<td id="T_3cd74_row3_col10" class="data row3 col10">S</td>
+<td id="T_3cd74_row3_col11" class="data row3 col11">0.000000</td>
+<td id="T_3cd74_row3_col12" class="data row3 col12">1.000000</td>
+<td id="T_3cd74_row3_col13" class="data row3 col13">0.000000</td>
+<td id="T_3cd74_row3_col14" class="data row3 col14">0.000000</td>
+<td id="T_3cd74_row3_col15" class="data row3 col15">1.000000</td>
+<td id="T_3cd74_row3_col16" class="data row3 col16">0.000000</td>
+<td id="T_3cd74_row3_col17" class="data row3 col17">0.000000</td>
+<td id="T_3cd74_row3_col18" class="data row3 col18">0.000000</td>
+<td id="T_3cd74_row3_col19" class="data row3 col19">0.000000</td>
+<td id="T_3cd74_row3_col20" class="data row3 col20">0.000000</td>
+<td id="T_3cd74_row3_col21" class="data row3 col21">0.000000</td>
+<td id="T_3cd74_row3_col22" class="data row3 col22">1.000000</td>
+<td id="T_3cd74_row3_col23" class="data row3 col23">0.000000</td>
+</tr>
+<tr class="odd">
+<td id="T_3cd74_level0_row4" class="row_heading level0 row4" data-quarto-table-cell-role="th">4</td>
+<td id="T_3cd74_row4_col0" class="data row4 col0">896</td>
+<td id="T_3cd74_row4_col1" class="data row4 col1">3</td>
+<td id="T_3cd74_row4_col2" class="data row4 col2">Hirvonen, Mrs. Alexander (Helga E Lindqvist)</td>
+<td id="T_3cd74_row4_col3" class="data row4 col3">female</td>
+<td id="T_3cd74_row4_col4" class="data row4 col4">22.000000</td>
+<td id="T_3cd74_row4_col5" class="data row4 col5">1</td>
+<td id="T_3cd74_row4_col6" class="data row4 col6">1</td>
+<td id="T_3cd74_row4_col7" class="data row4 col7">3101298</td>
+<td id="T_3cd74_row4_col8" class="data row4 col8">12.287500</td>
+<td id="T_3cd74_row4_col9" class="data row4 col9">G</td>
+<td id="T_3cd74_row4_col10" class="data row4 col10">S</td>
+<td id="T_3cd74_row4_col11" class="data row4 col11">1.000000</td>
+<td id="T_3cd74_row4_col12" class="data row4 col12">0.000000</td>
+<td id="T_3cd74_row4_col13" class="data row4 col13">0.000000</td>
+<td id="T_3cd74_row4_col14" class="data row4 col14">0.000000</td>
+<td id="T_3cd74_row4_col15" class="data row4 col15">1.000000</td>
+<td id="T_3cd74_row4_col16" class="data row4 col16">0.000000</td>
+<td id="T_3cd74_row4_col17" class="data row4 col17">0.000000</td>
+<td id="T_3cd74_row4_col18" class="data row4 col18">0.000000</td>
+<td id="T_3cd74_row4_col19" class="data row4 col19">0.000000</td>
+<td id="T_3cd74_row4_col20" class="data row4 col20">0.000000</td>
+<td id="T_3cd74_row4_col21" class="data row4 col21">0.000000</td>
+<td id="T_3cd74_row4_col22" class="data row4 col22">1.000000</td>
+<td id="T_3cd74_row4_col23" class="data row4 col23">0.000000</td>
+</tr>
+</tbody>
+</table>
+
+
+</div>
+</div>
+</section>
+<section id="divisão-de-treinamento-e-teste" class="level2" data-number="2.3">
+<h2 data-number="2.3" data-anchor-id="divisão-de-treinamento-e-teste"><span class="header-section-number">2.3</span> Divisão de treinamento e teste</h2>
+<p>O código abaixo realiza uma divisão de treinamento e teste, colocando 75% dos dados em um conjunto de treinamento e 25% dos dados em um conjunto de teste. Isso é feito para garantir que nosso algoritmo de classificação seja capaz de generalizar bem para novos dados.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb37"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="co">#Removendo colunas</span></span>
+<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a>y <span class="op">=</span> train.Survived.copy()</span>
+<span id="cb37-3"><a href="#cb37-3" aria-hidden="true" tabindex="-1"></a>x <span class="op">=</span> train.drop([<span class="st">'Survived'</span>, <span class="st">'PassengerId'</span>, <span class="st">'Name'</span>, <span class="st">'Ticket'</span>, <span class="st">'Age'</span>, <span class="st">'Sex'</span>, <span class="st">'Embarked'</span>, <span class="st">'Cabin'</span>], axis<span class="op">=</span> <span class="dv">1</span>)</span>
+<span id="cb37-4"><a href="#cb37-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-5"><a href="#cb37-5" aria-hidden="true" tabindex="-1"></a><span class="co">#Dividindo</span></span>
+<span id="cb37-6"><a href="#cb37-6" aria-hidden="true" tabindex="-1"></a>x_train, x_test, y_train, y_test <span class="op">=</span> train_test_split(x, y, test_size<span class="op">=</span> <span class="fl">0.25</span>, random_state<span class="op">=</span> <span class="dv">20</span>)</span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+</section>
+<section id="escolha-e-treinamento-do-modelo" class="level1" data-number="3">
+<h1 data-number="3"><span class="header-section-number">3</span> Escolha e treinamento do modelo</h1>
+<p>Por se tratar de classificação binária, usarei como modelo a regressão logística</p>
+<section id="treinamento-do-modelo" class="level2" data-number="3.1">
+<h2 data-number="3.1" data-anchor-id="treinamento-do-modelo"><span class="header-section-number">3.1</span> Treinamento do Modelo</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb38"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a>model_lr <span class="op">=</span> LogisticRegression(solver<span class="op">=</span><span class="st">'lbfgs'</span>, max_iter<span class="op">=</span><span class="dv">1000</span>)</span>
+<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a>model_lr.fit(x_train, y_train) </span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<style>#sk-container-id-1 {color: black;background-color: white;}#sk-container-id-1 pre{padding: 0;}#sk-container-id-1 div.sk-toggleable {background-color: white;}#sk-container-id-1 label.sk-toggleable__label {cursor: pointer;display: block;width: 100%;margin-bottom: 0;padding: 0.3em;box-sizing: border-box;text-align: center;}#sk-container-id-1 label.sk-toggleable__label-arrow:before {content: "▸";float: left;margin-right: 0.25em;color: #696969;}#sk-container-id-1 label.sk-toggleable__label-arrow:hover:before {color: black;}#sk-container-id-1 div.sk-estimator:hover label.sk-toggleable__label-arrow:before {color: black;}#sk-container-id-1 div.sk-toggleable__content {max-height: 0;max-width: 0;overflow: hidden;text-align: left;background-color: #f0f8ff;}#sk-container-id-1 div.sk-toggleable__content pre {margin: 0.2em;color: black;border-radius: 0.25em;background-color: #f0f8ff;}#sk-container-id-1 input.sk-toggleable__control:checked~div.sk-toggleable__content {max-height: 200px;max-width: 100%;overflow: auto;}#sk-container-id-1 input.sk-toggleable__control:checked~label.sk-toggleable__label-arrow:before {content: "▾";}#sk-container-id-1 div.sk-estimator input.sk-toggleable__control:checked~label.sk-toggleable__label {background-color: #d4ebff;}#sk-container-id-1 div.sk-label input.sk-toggleable__control:checked~label.sk-toggleable__label {background-color: #d4ebff;}#sk-container-id-1 input.sk-hidden--visually {border: 0;clip: rect(1px 1px 1px 1px);clip: rect(1px, 1px, 1px, 1px);height: 1px;margin: -1px;overflow: hidden;padding: 0;position: absolute;width: 1px;}#sk-container-id-1 div.sk-estimator {font-family: monospace;background-color: #f0f8ff;border: 1px dotted black;border-radius: 0.25em;box-sizing: border-box;margin-bottom: 0.5em;}#sk-container-id-1 div.sk-estimator:hover {background-color: #d4ebff;}#sk-container-id-1 div.sk-parallel-item::after {content: "";width: 100%;border-bottom: 1px solid gray;flex-grow: 1;}#sk-container-id-1 div.sk-label:hover label.sk-toggleable__label {background-color: #d4ebff;}#sk-container-id-1 div.sk-serial::before {content: "";position: absolute;border-left: 1px solid gray;box-sizing: border-box;top: 0;bottom: 0;left: 50%;z-index: 0;}#sk-container-id-1 div.sk-serial {display: flex;flex-direction: column;align-items: center;background-color: white;padding-right: 0.2em;padding-left: 0.2em;position: relative;}#sk-container-id-1 div.sk-item {position: relative;z-index: 1;}#sk-container-id-1 div.sk-parallel {display: flex;align-items: stretch;justify-content: center;background-color: white;position: relative;}#sk-container-id-1 div.sk-item::before, #sk-container-id-1 div.sk-parallel-item::before {content: "";position: absolute;border-left: 1px solid gray;box-sizing: border-box;top: 0;bottom: 0;left: 50%;z-index: -1;}#sk-container-id-1 div.sk-parallel-item {display: flex;flex-direction: column;z-index: 1;position: relative;background-color: white;}#sk-container-id-1 div.sk-parallel-item:first-child::after {align-self: flex-end;width: 50%;}#sk-container-id-1 div.sk-parallel-item:last-child::after {align-self: flex-start;width: 50%;}#sk-container-id-1 div.sk-parallel-item:only-child::after {width: 0;}#sk-container-id-1 div.sk-dashed-wrapped {border: 1px dashed gray;margin: 0 0.4em 0.5em 0.4em;box-sizing: border-box;padding-bottom: 0.4em;background-color: white;}#sk-container-id-1 div.sk-label label {font-family: monospace;font-weight: bold;display: inline-block;line-height: 1.2em;}#sk-container-id-1 div.sk-label-container {text-align: center;}#sk-container-id-1 div.sk-container {/* jupyter's `normalize.less` sets `[hidden] { display: none; }` but bootstrap.min.css set `[hidden] { display: none !important; }` so we also need the `!important` here to be able to override the default hidden behavior on the sphinx rendered scikit-learn.org. See: https://github.com/scikit-learn/scikit-learn/issues/21755 */display: inline-block !important;position: relative;}#sk-container-id-1 div.sk-text-repr-fallback {display: none;}</style><div id="sk-container-id-1" class="sk-top-container"><div class="sk-text-repr-fallback"><pre>LogisticRegression(max_iter=1000)</pre><b>In a Jupyter environment, please rerun this cell to show the HTML representation or trust the notebook. <br>On GitHub, the HTML representation is unable to render, please try loading this page with nbviewer.org.</b></div><div class="sk-container" hidden=""><div class="sk-item"><div class="sk-estimator sk-toggleable"><input class="sk-toggleable__control sk-hidden--visually" id="sk-estimator-id-1" type="checkbox" checked=""><label for="sk-estimator-id-1" class="sk-toggleable__label sk-toggleable__label-arrow">LogisticRegression</label><div class="sk-toggleable__content"><pre>LogisticRegression(max_iter=1000)</pre></div></div></div></div></div>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb39"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="co">#predict</span></span>
+<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a>pred <span class="op">=</span> model_lr.predict(x_test)</span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+</section>
+<section id="avaliação-de-desempenho" class="level1" data-number="4">
+<h1 data-number="4"><span class="header-section-number">4</span> Avaliação de desempenho</h1>
+<p>Usarei o metodo de acurácia para medir o desempenho do modelo</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb40"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a>score <span class="op">=</span> model_lr.score(x_test, y_test)</span>
+<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a>score</span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>0.8071748878923767</code></pre>
+</div>
+</div>
+<p>Tivemos uma acurácia de 0.8071749 usando o metodo de train_test_split. Agora iremos usar nosso modelo no banco <code>test.csv</code> para prever os sobreviventes.</p>
+<section id="prevendo-test.csv" class="level2" data-number="4.1">
+<h2 data-number="4.1" data-anchor-id="prevendo-test.csv"><span class="header-section-number">4.1</span> Prevendo ‘test.csv’</h2>
+<p>Submeterei os resultados do modelo ao site kaggle para obter a quantidade de acertos.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb42"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a>test_id <span class="op">=</span> test.PassengerId.copy()</span>
+<span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a>test_drop <span class="op">=</span> test.drop([<span class="st">'PassengerId'</span>, <span class="st">'Name'</span>, <span class="st">'Ticket'</span>, <span class="st">'Age'</span>, <span class="st">'Sex'</span>, <span class="st">'Embarked'</span>, <span class="st">'Cabin'</span>], axis<span class="op">=</span> <span class="dv">1</span>)</span>
+<span id="cb42-3"><a href="#cb42-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb42-4"><a href="#cb42-4" aria-hidden="true" tabindex="-1"></a>pred <span class="op">=</span> model_lr.predict(test_drop)</span>
+<span id="cb42-5"><a href="#cb42-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb42-6"><a href="#cb42-6" aria-hidden="true" tabindex="-1"></a>submission <span class="op">=</span> pd.DataFrame({<span class="st">"PassengerId"</span>: test_id.values, <span class="st">"Survived"</span>: pred})</span>
+<span id="cb42-7"><a href="#cb42-7" aria-hidden="true" tabindex="-1"></a>submission.to_csv(<span class="st">"data/submission.csv"</span>, index<span class="op">=</span> <span class="va">False</span>)</span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="images/acerto1.jpg" class="img-fluid figure-img"></p>
+<figcaption class="figure-caption">Porcentagem de acertos do modelo</figcaption>
+</figure>
+</div>
+</section>
+</section>
+<section id="refinamento" class="level1" data-number="5">
+<h1 data-number="5"><span class="header-section-number">5</span> Refinamento</h1>
+<p>Vamos melhorar o modelo adicionando <code>Title</code>,<code>Family_size</code> e estimando melhor <code>Age</code>.</p>
+<section id="name" class="level4">
+<h4 data-anchor-id="name">Name</h4>
+<p>Vou criar uma nova variável com os titulos dos passageiros.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb43"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a>train[<span class="st">'Title'</span>] <span class="op">=</span> train.Name.<span class="bu">str</span>.extract(<span class="st">' ([A-Za-z]+)\.'</span>)</span>
+<span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a>test[<span class="st">'Title'</span>] <span class="op">=</span> test.Name.<span class="bu">str</span>.extract(<span class="st">' ([A-Za-z]+)\.'</span>)</span>
+<span id="cb43-3"><a href="#cb43-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb43-4"><a href="#cb43-4" aria-hidden="true" tabindex="-1"></a>value_per(train, <span class="st">'Title'</span>)</span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>          Total      %
+Mr          517  58.02
+Miss        182  20.43
+Mrs         125  14.03
+Master       40   4.49
+Dr            7   0.79
+Rev           6   0.67
+Mlle          2   0.22
+Major         2   0.22
+Col           2   0.22
+Countess      1   0.11
+Capt          1   0.11
+Ms            1   0.11
+Sir           1   0.11
+Lady          1   0.11
+Mme           1   0.11
+Don           1   0.11
+Jonkheer      1   0.11</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb45"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a>value_per(test, <span class="st">'Title'</span>)</span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>        Total      %
+Mr        240  57.42
+Miss       78  18.66
+Mrs        72  17.22
+Master     21   5.02
+Col         2   0.48
+Rev         2   0.48
+Ms          1   0.24
+Dr          1   0.24
+Dona        1   0.24</code></pre>
+</div>
+</div>
+<p>Como temos muitos valores com poucas repetições, iremos agrupa-los.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb47"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a><span class="co">#Train</span></span>
+<span id="cb47-2"><a href="#cb47-2" aria-hidden="true" tabindex="-1"></a>train[<span class="st">'Title'</span>] <span class="op">=</span> train[<span class="st">'Title'</span>].replace(</span>
+<span id="cb47-3"><a href="#cb47-3" aria-hidden="true" tabindex="-1"></a>  [<span class="st">'Lady'</span>,<span class="st">'Countess'</span>,<span class="st">'Capt'</span>,<span class="st">'Col'</span>,<span class="st">'Don'</span>,<span class="st">'Dr'</span>,<span class="st">'Major'</span>,<span class="st">'Rev'</span>,<span class="st">'Sir'</span>,<span class="st">'Jonkheer'</span>], <span class="st">'Especial'</span>)</span>
+<span id="cb47-4"><a href="#cb47-4" aria-hidden="true" tabindex="-1"></a>train[<span class="st">'Title'</span>] <span class="op">=</span> train[<span class="st">'Title'</span>].replace(<span class="st">'Mlle'</span>, <span class="st">'Miss'</span>) <span class="co">#Mademoiselle é equivalente a Miss</span></span>
+<span id="cb47-5"><a href="#cb47-5" aria-hidden="true" tabindex="-1"></a>train[<span class="st">'Title'</span>] <span class="op">=</span> train[<span class="st">'Title'</span>].replace(<span class="st">'Ms'</span>, <span class="st">'Miss'</span>)</span>
+<span id="cb47-6"><a href="#cb47-6" aria-hidden="true" tabindex="-1"></a>train[<span class="st">'Title'</span>] <span class="op">=</span> train[<span class="st">'Title'</span>].replace(<span class="st">'Mme'</span>, <span class="st">'Mrs'</span>) <span class="co">#Madame é equivalente a Mrs</span></span>
+<span id="cb47-7"><a href="#cb47-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb47-8"><a href="#cb47-8" aria-hidden="true" tabindex="-1"></a><span class="co">#Teste</span></span>
+<span id="cb47-9"><a href="#cb47-9" aria-hidden="true" tabindex="-1"></a>test[<span class="st">'Title'</span>] <span class="op">=</span> test[<span class="st">'Title'</span>].replace([<span class="st">'Col'</span>,<span class="st">'Dr'</span>,<span class="st">'Rev'</span>,<span class="st">'Dona'</span>], <span class="st">'Especial'</span>)</span>
+<span id="cb47-10"><a href="#cb47-10" aria-hidden="true" tabindex="-1"></a>test[<span class="st">'Title'</span>] <span class="op">=</span> test[<span class="st">'Title'</span>].replace(<span class="st">'Ms'</span>, <span class="st">'Miss'</span>)</span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb48"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a><span class="co">#Codificando</span></span>
+<span id="cb48-2"><a href="#cb48-2" aria-hidden="true" tabindex="-1"></a>cols <span class="op">=</span> [<span class="st">'Title'</span>]</span>
+<span id="cb48-3"><a href="#cb48-3" aria-hidden="true" tabindex="-1"></a>features_train <span class="op">=</span> encoder(train, cols)</span>
+<span id="cb48-4"><a href="#cb48-4" aria-hidden="true" tabindex="-1"></a>features_test <span class="op">=</span> encoder(test, cols)</span>
+<span id="cb48-5"><a href="#cb48-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb48-6"><a href="#cb48-6" aria-hidden="true" tabindex="-1"></a>train <span class="op">=</span> pd.concat([train, features_train], axis<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb48-7"><a href="#cb48-7" aria-hidden="true" tabindex="-1"></a>test <span class="op">=</span> pd.concat([test, features_test], axis<span class="op">=</span><span class="dv">1</span>)</span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb49"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a>value_per(train, <span class="st">'Title'</span>)</span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>          Total      %
+Mr          517  58.02
+Miss        185  20.76
+Mrs         126  14.14
+Master       40   4.49
+Especial     23   2.58</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb51"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb51-1"><a href="#cb51-1" aria-hidden="true" tabindex="-1"></a>value_per(test, <span class="st">'Title'</span>)</span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>          Total      %
+Mr          240  57.42
+Miss         79  18.90
+Mrs          72  17.22
+Master       21   5.02
+Especial      6   1.44</code></pre>
+</div>
+</div>
+</section>
+<section id="age" class="level4">
+<h4 data-anchor-id="age">Age</h4>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb53"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb53-1"><a href="#cb53-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(train, <span class="fu">aes</span>(<span class="at">x=</span> Age)) <span class="sc">+</span></span>
+<span id="cb53-2"><a href="#cb53-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_histogram</span>(<span class="at">bins=</span> <span class="dv">39</span>, <span class="fu">aes</span>(<span class="at">y =</span> ..density..),<span class="at">col=</span> <span class="st">"#e05e00"</span>, <span class="at">fill =</span> <span class="st">"#ff7f0f"</span>) <span class="sc">+</span></span>
+<span id="cb53-3"><a href="#cb53-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_density</span>(<span class="at">col =</span> <span class="st">"black"</span>) <span class="sc">+</span></span>
+<span id="cb53-4"><a href="#cb53-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_y_continuous</span>(<span class="at">labels =</span> scales<span class="sc">::</span><span class="fu">percent_format</span>()) <span class="sc">+</span></span>
+<span id="cb53-5"><a href="#cb53-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x=</span> <span class="st">"Idade"</span>, <span class="at">y=</span> <span class="st">"Densidade"</span>, <span class="at">title=</span> <span class="st">"Distribuição da Idade"</span>) <span class="sc">+</span></span>
+<span id="cb53-6"><a href="#cb53-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_hc</span>()</span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="main_files/figure-html/unnamed-chunk-33-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<p>A idade segue uma distribuição aproximadamente normal, vamos tentar gerar números que segue uma distribuição normal com sua média e variância.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb54"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb54-1"><a href="#cb54-1" aria-hidden="true" tabindex="-1"></a>test <span class="ot">=</span> py<span class="sc">$</span>test</span>
+<span id="cb54-2"><a href="#cb54-2" aria-hidden="true" tabindex="-1"></a>age_train <span class="ot">=</span> <span class="fu">abs</span>(<span class="fu">rnorm</span>(<span class="dv">177</span>, <span class="fu">mean</span>(train<span class="sc">$</span>Age, <span class="at">na.rm =</span> T), <span class="fu">sd</span>(train<span class="sc">$</span>Age, <span class="at">na.rm =</span> T)))</span>
+<span id="cb54-3"><a href="#cb54-3" aria-hidden="true" tabindex="-1"></a>age_test <span class="ot">=</span> <span class="fu">abs</span>(<span class="fu">rnorm</span>(<span class="dv">86</span>, <span class="fu">mean</span>(test<span class="sc">$</span>Age, <span class="at">na.rm =</span> T), <span class="fu">sd</span>(test<span class="sc">$</span>Age, <span class="at">na.rm =</span> T)))</span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb55"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb55-1"><a href="#cb55-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> dict_age(df, valor):</span>
+<span id="cb55-2"><a href="#cb55-2" aria-hidden="true" tabindex="-1"></a>  nan_indices <span class="op">=</span> df[df[<span class="st">'Age'</span>].isna()].index.tolist()</span>
+<span id="cb55-3"><a href="#cb55-3" aria-hidden="true" tabindex="-1"></a>  nan_valor <span class="op">=</span> valor</span>
+<span id="cb55-4"><a href="#cb55-4" aria-hidden="true" tabindex="-1"></a>  nan_dict <span class="op">=</span> <span class="bu">dict</span>(<span class="bu">zip</span>(nan_indices, nan_valor))</span>
+<span id="cb55-5"><a href="#cb55-5" aria-hidden="true" tabindex="-1"></a>  <span class="cf">return</span> nan_dict</span>
+<span id="cb55-6"><a href="#cb55-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb55-7"><a href="#cb55-7" aria-hidden="true" tabindex="-1"></a>age_train <span class="op">=</span> dict_age(train, r.age_train)</span>
+<span id="cb55-8"><a href="#cb55-8" aria-hidden="true" tabindex="-1"></a>age_test <span class="op">=</span> dict_age(test, r.age_test)</span>
+<span id="cb55-9"><a href="#cb55-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb55-10"><a href="#cb55-10" aria-hidden="true" tabindex="-1"></a>train.Age.fillna(age_train, inplace<span class="op">=</span> <span class="va">True</span>)</span>
+<span id="cb55-11"><a href="#cb55-11" aria-hidden="true" tabindex="-1"></a>test.Age.fillna(age_test, inplace<span class="op">=</span> <span class="va">True</span>)</span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="family_size" class="level4">
+<h4 data-anchor-id="family_size">Family_size</h4>
+<p>Iremos criar a variável <code>Family_size</code> somando <code>SibSp</code> e <code>Parch</code></p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb56"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb56-1"><a href="#cb56-1" aria-hidden="true" tabindex="-1"></a>train[<span class="st">'Family_size'</span>] <span class="op">=</span> train.SibSp <span class="op">+</span> train.Parch<span class="op">+</span><span class="dv">1</span></span>
+<span id="cb56-2"><a href="#cb56-2" aria-hidden="true" tabindex="-1"></a>test[<span class="st">'Family_size'</span>] <span class="op">=</span> test.SibSp <span class="op">+</span> test.Parch<span class="op">+</span><span class="dv">1</span></span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="treinamento-do-modelo-refinado" class="level2" data-number="5.1">
+<h2 data-number="5.1" data-anchor-id="treinamento-do-modelo-refinado"><span class="header-section-number">5.1</span> Treinamento do modelo refinado</h2>
+<section id="preparação" class="level3" data-number="5.1.1">
+<h3 data-number="5.1.1" data-anchor-id="preparação"><span class="header-section-number">5.1.1</span> Preparação</h3>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb57"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb57-1"><a href="#cb57-1" aria-hidden="true" tabindex="-1"></a>train.head().style</span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<style type="text/css">
+</style>
+
+<table id="T_77b70" data-quarto-postprocess="true" class="table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th class="blank level0" data-quarto-table-cell-role="th">&nbsp;</th>
+<th id="T_77b70_level0_col0" class="col_heading level0 col0" data-quarto-table-cell-role="th">PassengerId</th>
+<th id="T_77b70_level0_col1" class="col_heading level0 col1" data-quarto-table-cell-role="th">Pclass</th>
+<th id="T_77b70_level0_col2" class="col_heading level0 col2" data-quarto-table-cell-role="th">Name</th>
+<th id="T_77b70_level0_col3" class="col_heading level0 col3" data-quarto-table-cell-role="th">Sex</th>
+<th id="T_77b70_level0_col4" class="col_heading level0 col4" data-quarto-table-cell-role="th">Age</th>
+<th id="T_77b70_level0_col5" class="col_heading level0 col5" data-quarto-table-cell-role="th">SibSp</th>
+<th id="T_77b70_level0_col6" class="col_heading level0 col6" data-quarto-table-cell-role="th">Parch</th>
+<th id="T_77b70_level0_col7" class="col_heading level0 col7" data-quarto-table-cell-role="th">Ticket</th>
+<th id="T_77b70_level0_col8" class="col_heading level0 col8" data-quarto-table-cell-role="th">Fare</th>
+<th id="T_77b70_level0_col9" class="col_heading level0 col9" data-quarto-table-cell-role="th">Cabin</th>
+<th id="T_77b70_level0_col10" class="col_heading level0 col10" data-quarto-table-cell-role="th">Embarked</th>
+<th id="T_77b70_level0_col11" class="col_heading level0 col11" data-quarto-table-cell-role="th">Survived</th>
+<th id="T_77b70_level0_col12" class="col_heading level0 col12" data-quarto-table-cell-role="th">female</th>
+<th id="T_77b70_level0_col13" class="col_heading level0 col13" data-quarto-table-cell-role="th">male</th>
+<th id="T_77b70_level0_col14" class="col_heading level0 col14" data-quarto-table-cell-role="th">C</th>
+<th id="T_77b70_level0_col15" class="col_heading level0 col15" data-quarto-table-cell-role="th">Q</th>
+<th id="T_77b70_level0_col16" class="col_heading level0 col16" data-quarto-table-cell-role="th">S</th>
+<th id="T_77b70_level0_col17" class="col_heading level0 col17" data-quarto-table-cell-role="th">A</th>
+<th id="T_77b70_level0_col18" class="col_heading level0 col18" data-quarto-table-cell-role="th">B</th>
+<th id="T_77b70_level0_col19" class="col_heading level0 col19" data-quarto-table-cell-role="th">C</th>
+<th id="T_77b70_level0_col20" class="col_heading level0 col20" data-quarto-table-cell-role="th">D</th>
+<th id="T_77b70_level0_col21" class="col_heading level0 col21" data-quarto-table-cell-role="th">E</th>
+<th id="T_77b70_level0_col22" class="col_heading level0 col22" data-quarto-table-cell-role="th">F</th>
+<th id="T_77b70_level0_col23" class="col_heading level0 col23" data-quarto-table-cell-role="th">G</th>
+<th id="T_77b70_level0_col24" class="col_heading level0 col24" data-quarto-table-cell-role="th">T</th>
+<th id="T_77b70_level0_col25" class="col_heading level0 col25" data-quarto-table-cell-role="th">Title</th>
+<th id="T_77b70_level0_col26" class="col_heading level0 col26" data-quarto-table-cell-role="th">Especial</th>
+<th id="T_77b70_level0_col27" class="col_heading level0 col27" data-quarto-table-cell-role="th">Master</th>
+<th id="T_77b70_level0_col28" class="col_heading level0 col28" data-quarto-table-cell-role="th">Miss</th>
+<th id="T_77b70_level0_col29" class="col_heading level0 col29" data-quarto-table-cell-role="th">Mr</th>
+<th id="T_77b70_level0_col30" class="col_heading level0 col30" data-quarto-table-cell-role="th">Mrs</th>
+<th id="T_77b70_level0_col31" class="col_heading level0 col31" data-quarto-table-cell-role="th">Family_size</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td id="T_77b70_level0_row0" class="row_heading level0 row0" data-quarto-table-cell-role="th">0</td>
+<td id="T_77b70_row0_col0" class="data row0 col0">1</td>
+<td id="T_77b70_row0_col1" class="data row0 col1">3</td>
+<td id="T_77b70_row0_col2" class="data row0 col2">Braund, Mr. Owen Harris</td>
+<td id="T_77b70_row0_col3" class="data row0 col3">male</td>
+<td id="T_77b70_row0_col4" class="data row0 col4">22.000000</td>
+<td id="T_77b70_row0_col5" class="data row0 col5">1</td>
+<td id="T_77b70_row0_col6" class="data row0 col6">0</td>
+<td id="T_77b70_row0_col7" class="data row0 col7">A/5 21171</td>
+<td id="T_77b70_row0_col8" class="data row0 col8">7.250000</td>
+<td id="T_77b70_row0_col9" class="data row0 col9">G</td>
+<td id="T_77b70_row0_col10" class="data row0 col10">S</td>
+<td id="T_77b70_row0_col11" class="data row0 col11">0</td>
+<td id="T_77b70_row0_col12" class="data row0 col12">0.000000</td>
+<td id="T_77b70_row0_col13" class="data row0 col13">1.000000</td>
+<td id="T_77b70_row0_col14" class="data row0 col14">0.000000</td>
+<td id="T_77b70_row0_col15" class="data row0 col15">0.000000</td>
+<td id="T_77b70_row0_col16" class="data row0 col16">1.000000</td>
+<td id="T_77b70_row0_col17" class="data row0 col17">0.000000</td>
+<td id="T_77b70_row0_col18" class="data row0 col18">0.000000</td>
+<td id="T_77b70_row0_col19" class="data row0 col19">0.000000</td>
+<td id="T_77b70_row0_col20" class="data row0 col20">0.000000</td>
+<td id="T_77b70_row0_col21" class="data row0 col21">0.000000</td>
+<td id="T_77b70_row0_col22" class="data row0 col22">0.000000</td>
+<td id="T_77b70_row0_col23" class="data row0 col23">1.000000</td>
+<td id="T_77b70_row0_col24" class="data row0 col24">0.000000</td>
+<td id="T_77b70_row0_col25" class="data row0 col25">Mr</td>
+<td id="T_77b70_row0_col26" class="data row0 col26">0.000000</td>
+<td id="T_77b70_row0_col27" class="data row0 col27">0.000000</td>
+<td id="T_77b70_row0_col28" class="data row0 col28">0.000000</td>
+<td id="T_77b70_row0_col29" class="data row0 col29">1.000000</td>
+<td id="T_77b70_row0_col30" class="data row0 col30">0.000000</td>
+<td id="T_77b70_row0_col31" class="data row0 col31">2</td>
+</tr>
+<tr class="even">
+<td id="T_77b70_level0_row1" class="row_heading level0 row1" data-quarto-table-cell-role="th">1</td>
+<td id="T_77b70_row1_col0" class="data row1 col0">2</td>
+<td id="T_77b70_row1_col1" class="data row1 col1">1</td>
+<td id="T_77b70_row1_col2" class="data row1 col2">Cumings, Mrs. John Bradley (Florence Briggs Thayer)</td>
+<td id="T_77b70_row1_col3" class="data row1 col3">female</td>
+<td id="T_77b70_row1_col4" class="data row1 col4">38.000000</td>
+<td id="T_77b70_row1_col5" class="data row1 col5">1</td>
+<td id="T_77b70_row1_col6" class="data row1 col6">0</td>
+<td id="T_77b70_row1_col7" class="data row1 col7">PC 17599</td>
+<td id="T_77b70_row1_col8" class="data row1 col8">71.283300</td>
+<td id="T_77b70_row1_col9" class="data row1 col9">C</td>
+<td id="T_77b70_row1_col10" class="data row1 col10">C</td>
+<td id="T_77b70_row1_col11" class="data row1 col11">1</td>
+<td id="T_77b70_row1_col12" class="data row1 col12">1.000000</td>
+<td id="T_77b70_row1_col13" class="data row1 col13">0.000000</td>
+<td id="T_77b70_row1_col14" class="data row1 col14">1.000000</td>
+<td id="T_77b70_row1_col15" class="data row1 col15">0.000000</td>
+<td id="T_77b70_row1_col16" class="data row1 col16">0.000000</td>
+<td id="T_77b70_row1_col17" class="data row1 col17">0.000000</td>
+<td id="T_77b70_row1_col18" class="data row1 col18">0.000000</td>
+<td id="T_77b70_row1_col19" class="data row1 col19">1.000000</td>
+<td id="T_77b70_row1_col20" class="data row1 col20">0.000000</td>
+<td id="T_77b70_row1_col21" class="data row1 col21">0.000000</td>
+<td id="T_77b70_row1_col22" class="data row1 col22">0.000000</td>
+<td id="T_77b70_row1_col23" class="data row1 col23">0.000000</td>
+<td id="T_77b70_row1_col24" class="data row1 col24">0.000000</td>
+<td id="T_77b70_row1_col25" class="data row1 col25">Mrs</td>
+<td id="T_77b70_row1_col26" class="data row1 col26">0.000000</td>
+<td id="T_77b70_row1_col27" class="data row1 col27">0.000000</td>
+<td id="T_77b70_row1_col28" class="data row1 col28">0.000000</td>
+<td id="T_77b70_row1_col29" class="data row1 col29">0.000000</td>
+<td id="T_77b70_row1_col30" class="data row1 col30">1.000000</td>
+<td id="T_77b70_row1_col31" class="data row1 col31">2</td>
+</tr>
+<tr class="odd">
+<td id="T_77b70_level0_row2" class="row_heading level0 row2" data-quarto-table-cell-role="th">2</td>
+<td id="T_77b70_row2_col0" class="data row2 col0">3</td>
+<td id="T_77b70_row2_col1" class="data row2 col1">3</td>
+<td id="T_77b70_row2_col2" class="data row2 col2">Heikkinen, Miss. Laina</td>
+<td id="T_77b70_row2_col3" class="data row2 col3">female</td>
+<td id="T_77b70_row2_col4" class="data row2 col4">26.000000</td>
+<td id="T_77b70_row2_col5" class="data row2 col5">0</td>
+<td id="T_77b70_row2_col6" class="data row2 col6">0</td>
+<td id="T_77b70_row2_col7" class="data row2 col7">STON/O2. 3101282</td>
+<td id="T_77b70_row2_col8" class="data row2 col8">7.925000</td>
+<td id="T_77b70_row2_col9" class="data row2 col9">G</td>
+<td id="T_77b70_row2_col10" class="data row2 col10">S</td>
+<td id="T_77b70_row2_col11" class="data row2 col11">1</td>
+<td id="T_77b70_row2_col12" class="data row2 col12">1.000000</td>
+<td id="T_77b70_row2_col13" class="data row2 col13">0.000000</td>
+<td id="T_77b70_row2_col14" class="data row2 col14">0.000000</td>
+<td id="T_77b70_row2_col15" class="data row2 col15">0.000000</td>
+<td id="T_77b70_row2_col16" class="data row2 col16">1.000000</td>
+<td id="T_77b70_row2_col17" class="data row2 col17">0.000000</td>
+<td id="T_77b70_row2_col18" class="data row2 col18">0.000000</td>
+<td id="T_77b70_row2_col19" class="data row2 col19">0.000000</td>
+<td id="T_77b70_row2_col20" class="data row2 col20">0.000000</td>
+<td id="T_77b70_row2_col21" class="data row2 col21">0.000000</td>
+<td id="T_77b70_row2_col22" class="data row2 col22">0.000000</td>
+<td id="T_77b70_row2_col23" class="data row2 col23">1.000000</td>
+<td id="T_77b70_row2_col24" class="data row2 col24">0.000000</td>
+<td id="T_77b70_row2_col25" class="data row2 col25">Miss</td>
+<td id="T_77b70_row2_col26" class="data row2 col26">0.000000</td>
+<td id="T_77b70_row2_col27" class="data row2 col27">0.000000</td>
+<td id="T_77b70_row2_col28" class="data row2 col28">1.000000</td>
+<td id="T_77b70_row2_col29" class="data row2 col29">0.000000</td>
+<td id="T_77b70_row2_col30" class="data row2 col30">0.000000</td>
+<td id="T_77b70_row2_col31" class="data row2 col31">1</td>
+</tr>
+<tr class="even">
+<td id="T_77b70_level0_row3" class="row_heading level0 row3" data-quarto-table-cell-role="th">3</td>
+<td id="T_77b70_row3_col0" class="data row3 col0">4</td>
+<td id="T_77b70_row3_col1" class="data row3 col1">1</td>
+<td id="T_77b70_row3_col2" class="data row3 col2">Futrelle, Mrs. Jacques Heath (Lily May Peel)</td>
+<td id="T_77b70_row3_col3" class="data row3 col3">female</td>
+<td id="T_77b70_row3_col4" class="data row3 col4">35.000000</td>
+<td id="T_77b70_row3_col5" class="data row3 col5">1</td>
+<td id="T_77b70_row3_col6" class="data row3 col6">0</td>
+<td id="T_77b70_row3_col7" class="data row3 col7">113803</td>
+<td id="T_77b70_row3_col8" class="data row3 col8">53.100000</td>
+<td id="T_77b70_row3_col9" class="data row3 col9">C</td>
+<td id="T_77b70_row3_col10" class="data row3 col10">S</td>
+<td id="T_77b70_row3_col11" class="data row3 col11">1</td>
+<td id="T_77b70_row3_col12" class="data row3 col12">1.000000</td>
+<td id="T_77b70_row3_col13" class="data row3 col13">0.000000</td>
+<td id="T_77b70_row3_col14" class="data row3 col14">0.000000</td>
+<td id="T_77b70_row3_col15" class="data row3 col15">0.000000</td>
+<td id="T_77b70_row3_col16" class="data row3 col16">1.000000</td>
+<td id="T_77b70_row3_col17" class="data row3 col17">0.000000</td>
+<td id="T_77b70_row3_col18" class="data row3 col18">0.000000</td>
+<td id="T_77b70_row3_col19" class="data row3 col19">1.000000</td>
+<td id="T_77b70_row3_col20" class="data row3 col20">0.000000</td>
+<td id="T_77b70_row3_col21" class="data row3 col21">0.000000</td>
+<td id="T_77b70_row3_col22" class="data row3 col22">0.000000</td>
+<td id="T_77b70_row3_col23" class="data row3 col23">0.000000</td>
+<td id="T_77b70_row3_col24" class="data row3 col24">0.000000</td>
+<td id="T_77b70_row3_col25" class="data row3 col25">Mrs</td>
+<td id="T_77b70_row3_col26" class="data row3 col26">0.000000</td>
+<td id="T_77b70_row3_col27" class="data row3 col27">0.000000</td>
+<td id="T_77b70_row3_col28" class="data row3 col28">0.000000</td>
+<td id="T_77b70_row3_col29" class="data row3 col29">0.000000</td>
+<td id="T_77b70_row3_col30" class="data row3 col30">1.000000</td>
+<td id="T_77b70_row3_col31" class="data row3 col31">2</td>
+</tr>
+<tr class="odd">
+<td id="T_77b70_level0_row4" class="row_heading level0 row4" data-quarto-table-cell-role="th">4</td>
+<td id="T_77b70_row4_col0" class="data row4 col0">5</td>
+<td id="T_77b70_row4_col1" class="data row4 col1">3</td>
+<td id="T_77b70_row4_col2" class="data row4 col2">Allen, Mr. William Henry</td>
+<td id="T_77b70_row4_col3" class="data row4 col3">male</td>
+<td id="T_77b70_row4_col4" class="data row4 col4">35.000000</td>
+<td id="T_77b70_row4_col5" class="data row4 col5">0</td>
+<td id="T_77b70_row4_col6" class="data row4 col6">0</td>
+<td id="T_77b70_row4_col7" class="data row4 col7">373450</td>
+<td id="T_77b70_row4_col8" class="data row4 col8">8.050000</td>
+<td id="T_77b70_row4_col9" class="data row4 col9">G</td>
+<td id="T_77b70_row4_col10" class="data row4 col10">S</td>
+<td id="T_77b70_row4_col11" class="data row4 col11">0</td>
+<td id="T_77b70_row4_col12" class="data row4 col12">0.000000</td>
+<td id="T_77b70_row4_col13" class="data row4 col13">1.000000</td>
+<td id="T_77b70_row4_col14" class="data row4 col14">0.000000</td>
+<td id="T_77b70_row4_col15" class="data row4 col15">0.000000</td>
+<td id="T_77b70_row4_col16" class="data row4 col16">1.000000</td>
+<td id="T_77b70_row4_col17" class="data row4 col17">0.000000</td>
+<td id="T_77b70_row4_col18" class="data row4 col18">0.000000</td>
+<td id="T_77b70_row4_col19" class="data row4 col19">0.000000</td>
+<td id="T_77b70_row4_col20" class="data row4 col20">0.000000</td>
+<td id="T_77b70_row4_col21" class="data row4 col21">0.000000</td>
+<td id="T_77b70_row4_col22" class="data row4 col22">0.000000</td>
+<td id="T_77b70_row4_col23" class="data row4 col23">1.000000</td>
+<td id="T_77b70_row4_col24" class="data row4 col24">0.000000</td>
+<td id="T_77b70_row4_col25" class="data row4 col25">Mr</td>
+<td id="T_77b70_row4_col26" class="data row4 col26">0.000000</td>
+<td id="T_77b70_row4_col27" class="data row4 col27">0.000000</td>
+<td id="T_77b70_row4_col28" class="data row4 col28">0.000000</td>
+<td id="T_77b70_row4_col29" class="data row4 col29">1.000000</td>
+<td id="T_77b70_row4_col30" class="data row4 col30">0.000000</td>
+<td id="T_77b70_row4_col31" class="data row4 col31">1</td>
+</tr>
+</tbody>
+</table>
+
+
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb58"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb58-1"><a href="#cb58-1" aria-hidden="true" tabindex="-1"></a><span class="co">#Removendo colunas</span></span>
+<span id="cb58-2"><a href="#cb58-2" aria-hidden="true" tabindex="-1"></a>y <span class="op">=</span> train.Survived.copy()</span>
+<span id="cb58-3"><a href="#cb58-3" aria-hidden="true" tabindex="-1"></a>x <span class="op">=</span> train.drop(</span>
+<span id="cb58-4"><a href="#cb58-4" aria-hidden="true" tabindex="-1"></a>  [<span class="st">'Survived'</span>, <span class="st">'PassengerId'</span>, <span class="st">'Name'</span>, <span class="st">'Ticket'</span>, <span class="st">'Sex'</span>, <span class="st">'Embarked'</span>, <span class="st">'Cabin'</span>, <span class="st">'Title'</span>], axis<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb58-5"><a href="#cb58-5" aria-hidden="true" tabindex="-1"></a>test_id <span class="op">=</span> test.PassengerId.copy()</span>
+<span id="cb58-6"><a href="#cb58-6" aria-hidden="true" tabindex="-1"></a>test_drop <span class="op">=</span> test.drop(</span>
+<span id="cb58-7"><a href="#cb58-7" aria-hidden="true" tabindex="-1"></a>  [<span class="st">'PassengerId'</span>, <span class="st">'Name'</span>, <span class="st">'Ticket'</span>, <span class="st">'Sex'</span>, <span class="st">'Embarked'</span>, <span class="st">'Cabin'</span>, <span class="st">'Title'</span>], axis<span class="op">=</span> <span class="dv">1</span>)</span>
+<span id="cb58-8"><a href="#cb58-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb58-9"><a href="#cb58-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb58-10"><a href="#cb58-10" aria-hidden="true" tabindex="-1"></a><span class="co">#Dividindo</span></span>
+<span id="cb58-11"><a href="#cb58-11" aria-hidden="true" tabindex="-1"></a>x_train, x_test, y_train, y_test <span class="op">=</span> train_test_split(x, y, test_size<span class="op">=</span> <span class="fl">0.25</span>, random_state<span class="op">=</span> <span class="dv">20</span>)</span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="treinamento" class="level3" data-number="5.1.2">
+<h3 data-number="5.1.2" data-anchor-id="treinamento"><span class="header-section-number">5.1.2</span> Treinamento</h3>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb59"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb59-1"><a href="#cb59-1" aria-hidden="true" tabindex="-1"></a>model_lr.fit(x_train, y_train) </span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<style>#sk-container-id-2 {color: black;background-color: white;}#sk-container-id-2 pre{padding: 0;}#sk-container-id-2 div.sk-toggleable {background-color: white;}#sk-container-id-2 label.sk-toggleable__label {cursor: pointer;display: block;width: 100%;margin-bottom: 0;padding: 0.3em;box-sizing: border-box;text-align: center;}#sk-container-id-2 label.sk-toggleable__label-arrow:before {content: "▸";float: left;margin-right: 0.25em;color: #696969;}#sk-container-id-2 label.sk-toggleable__label-arrow:hover:before {color: black;}#sk-container-id-2 div.sk-estimator:hover label.sk-toggleable__label-arrow:before {color: black;}#sk-container-id-2 div.sk-toggleable__content {max-height: 0;max-width: 0;overflow: hidden;text-align: left;background-color: #f0f8ff;}#sk-container-id-2 div.sk-toggleable__content pre {margin: 0.2em;color: black;border-radius: 0.25em;background-color: #f0f8ff;}#sk-container-id-2 input.sk-toggleable__control:checked~div.sk-toggleable__content {max-height: 200px;max-width: 100%;overflow: auto;}#sk-container-id-2 input.sk-toggleable__control:checked~label.sk-toggleable__label-arrow:before {content: "▾";}#sk-container-id-2 div.sk-estimator input.sk-toggleable__control:checked~label.sk-toggleable__label {background-color: #d4ebff;}#sk-container-id-2 div.sk-label input.sk-toggleable__control:checked~label.sk-toggleable__label {background-color: #d4ebff;}#sk-container-id-2 input.sk-hidden--visually {border: 0;clip: rect(1px 1px 1px 1px);clip: rect(1px, 1px, 1px, 1px);height: 1px;margin: -1px;overflow: hidden;padding: 0;position: absolute;width: 1px;}#sk-container-id-2 div.sk-estimator {font-family: monospace;background-color: #f0f8ff;border: 1px dotted black;border-radius: 0.25em;box-sizing: border-box;margin-bottom: 0.5em;}#sk-container-id-2 div.sk-estimator:hover {background-color: #d4ebff;}#sk-container-id-2 div.sk-parallel-item::after {content: "";width: 100%;border-bottom: 1px solid gray;flex-grow: 1;}#sk-container-id-2 div.sk-label:hover label.sk-toggleable__label {background-color: #d4ebff;}#sk-container-id-2 div.sk-serial::before {content: "";position: absolute;border-left: 1px solid gray;box-sizing: border-box;top: 0;bottom: 0;left: 50%;z-index: 0;}#sk-container-id-2 div.sk-serial {display: flex;flex-direction: column;align-items: center;background-color: white;padding-right: 0.2em;padding-left: 0.2em;position: relative;}#sk-container-id-2 div.sk-item {position: relative;z-index: 1;}#sk-container-id-2 div.sk-parallel {display: flex;align-items: stretch;justify-content: center;background-color: white;position: relative;}#sk-container-id-2 div.sk-item::before, #sk-container-id-2 div.sk-parallel-item::before {content: "";position: absolute;border-left: 1px solid gray;box-sizing: border-box;top: 0;bottom: 0;left: 50%;z-index: -1;}#sk-container-id-2 div.sk-parallel-item {display: flex;flex-direction: column;z-index: 1;position: relative;background-color: white;}#sk-container-id-2 div.sk-parallel-item:first-child::after {align-self: flex-end;width: 50%;}#sk-container-id-2 div.sk-parallel-item:last-child::after {align-self: flex-start;width: 50%;}#sk-container-id-2 div.sk-parallel-item:only-child::after {width: 0;}#sk-container-id-2 div.sk-dashed-wrapped {border: 1px dashed gray;margin: 0 0.4em 0.5em 0.4em;box-sizing: border-box;padding-bottom: 0.4em;background-color: white;}#sk-container-id-2 div.sk-label label {font-family: monospace;font-weight: bold;display: inline-block;line-height: 1.2em;}#sk-container-id-2 div.sk-label-container {text-align: center;}#sk-container-id-2 div.sk-container {/* jupyter's `normalize.less` sets `[hidden] { display: none; }` but bootstrap.min.css set `[hidden] { display: none !important; }` so we also need the `!important` here to be able to override the default hidden behavior on the sphinx rendered scikit-learn.org. See: https://github.com/scikit-learn/scikit-learn/issues/21755 */display: inline-block !important;position: relative;}#sk-container-id-2 div.sk-text-repr-fallback {display: none;}</style><div id="sk-container-id-2" class="sk-top-container"><div class="sk-text-repr-fallback"><pre>LogisticRegression(max_iter=1000)</pre><b>In a Jupyter environment, please rerun this cell to show the HTML representation or trust the notebook. <br>On GitHub, the HTML representation is unable to render, please try loading this page with nbviewer.org.</b></div><div class="sk-container" hidden=""><div class="sk-item"><div class="sk-estimator sk-toggleable"><input class="sk-toggleable__control sk-hidden--visually" id="sk-estimator-id-2" type="checkbox" checked=""><label for="sk-estimator-id-2" class="sk-toggleable__label sk-toggleable__label-arrow">LogisticRegression</label><div class="sk-toggleable__content"><pre>LogisticRegression(max_iter=1000)</pre></div></div></div></div></div>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb60"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb60-1"><a href="#cb60-1" aria-hidden="true" tabindex="-1"></a><span class="co">#predict</span></span>
+<span id="cb60-2"><a href="#cb60-2" aria-hidden="true" tabindex="-1"></a>pred <span class="op">=</span> model_lr.predict(x_test)</span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="avaliação" class="level3" data-number="5.1.3">
+<h3 data-number="5.1.3" data-anchor-id="avaliação"><span class="header-section-number">5.1.3</span> Avaliação</h3>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb61"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb61-1"><a href="#cb61-1" aria-hidden="true" tabindex="-1"></a>score <span class="op">=</span> model_lr.score(x_test, y_test)</span>
+<span id="cb61-2"><a href="#cb61-2" aria-hidden="true" tabindex="-1"></a>score</span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>0.8295964125560538</code></pre>
+</div>
+</div>
+<p>Conseguimos uma melhora na acurácia do modelo, alcançando 0.8295964.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb63"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb63-1"><a href="#cb63-1" aria-hidden="true" tabindex="-1"></a>pred <span class="op">=</span> model_lr.predict(test_drop)</span>
+<span id="cb63-2"><a href="#cb63-2" aria-hidden="true" tabindex="-1"></a>submission <span class="op">=</span> pd.DataFrame({<span class="st">"PassengerId"</span>: test_id.values, <span class="st">"Survived"</span>: pred})</span>
+<span id="cb63-3"><a href="#cb63-3" aria-hidden="true" tabindex="-1"></a>submission.to_csv(<span class="st">"data/submission1.csv"</span>, index<span class="op">=</span> <span class="va">False</span>)</span></code><button title="Copiar para a área de transferência" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="images/acerto2.jpg" class="img-fluid figure-img"></p>
+<figcaption class="figure-caption">Porcentagem de acertos do modelo refinado</figcaption>
+</figure>
+</div>
+</section>
+</section>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const disableStylesheet = (stylesheets) => {
+    for (let i=0; i < stylesheets.length; i++) {
+      const stylesheet = stylesheets[i];
+      stylesheet.rel = 'prefetch';
+    }
+  }
+  const enableStylesheet = (stylesheets) => {
+    for (let i=0; i < stylesheets.length; i++) {
+      const stylesheet = stylesheets[i];
+      stylesheet.rel = 'stylesheet';
+    }
+  }
+  const manageTransitions = (selector, allowTransitions) => {
+    const els = window.document.querySelectorAll(selector);
+    for (let i=0; i < els.length; i++) {
+      const el = els[i];
+      if (allowTransitions) {
+        el.classList.remove('notransition');
+      } else {
+        el.classList.add('notransition');
+      }
+    }
+  }
+  const toggleColorMode = (alternate) => {
+    // Switch the stylesheets
+    const alternateStylesheets = window.document.querySelectorAll('link.quarto-color-scheme.quarto-color-alternate');
+    manageTransitions('#quarto-margin-sidebar .nav-link', false);
+    if (alternate) {
+      enableStylesheet(alternateStylesheets);
+      for (const sheetNode of alternateStylesheets) {
+        if (sheetNode.id === "quarto-bootstrap") {
+          toggleBodyColorMode(sheetNode);
+        }
+      }
+    } else {
+      disableStylesheet(alternateStylesheets);
+      toggleBodyColorPrimary();
+    }
+    manageTransitions('#quarto-margin-sidebar .nav-link', true);
+    // Switch the toggles
+    const toggles = window.document.querySelectorAll('.quarto-color-scheme-toggle');
+    for (let i=0; i < toggles.length; i++) {
+      const toggle = toggles[i];
+      if (toggle) {
+        if (alternate) {
+          toggle.classList.add("alternate");     
+        } else {
+          toggle.classList.remove("alternate");
+        }
+      }
+    }
+    // Hack to workaround the fact that safari doesn't
+    // properly recolor the scrollbar when toggling (#1455)
+    if (navigator.userAgent.indexOf('Safari') > 0 && navigator.userAgent.indexOf('Chrome') == -1) {
+      manageTransitions("body", false);
+      window.scrollTo(0, 1);
+      setTimeout(() => {
+        window.scrollTo(0, 0);
+        manageTransitions("body", true);
+      }, 40);  
+    }
+  }
+  const isFileUrl = () => { 
+    return window.location.protocol === 'file:';
+  }
+  const hasAlternateSentinel = () => {  
+    let styleSentinel = getColorSchemeSentinel();
+    if (styleSentinel !== null) {
+      return styleSentinel === "alternate";
+    } else {
+      return false;
+    }
+  }
+  const setStyleSentinel = (alternate) => {
+    const value = alternate ? "alternate" : "default";
+    if (!isFileUrl()) {
+      window.localStorage.setItem("quarto-color-scheme", value);
+    } else {
+      localAlternateSentinel = value;
+    }
+  }
+  const getColorSchemeSentinel = () => {
+    if (!isFileUrl()) {
+      const storageValue = window.localStorage.getItem("quarto-color-scheme");
+      return storageValue != null ? storageValue : localAlternateSentinel;
+    } else {
+      return localAlternateSentinel;
+    }
+  }
+  let localAlternateSentinel = 'default';
+  // Dark / light mode switch
+  window.quartoToggleColorScheme = () => {
+    // Read the current dark / light value 
+    let toAlternate = !hasAlternateSentinel();
+    toggleColorMode(toAlternate);
+    setStyleSentinel(toAlternate);
+  };
+  // Ensure there is a toggle, if there isn't float one in the top right
+  if (window.document.querySelector('.quarto-color-scheme-toggle') === null) {
+    const a = window.document.createElement('a');
+    a.classList.add('top-right');
+    a.classList.add('quarto-color-scheme-toggle');
+    a.href = "";
+    a.onclick = function() { try { window.quartoToggleColorScheme(); } catch {} return false; };
+    const i = window.document.createElement("i");
+    i.classList.add('bi');
+    a.appendChild(i);
+    window.document.body.appendChild(a);
+  }
+  // Switch to dark mode if need be
+  if (hasAlternateSentinel()) {
+    toggleColorMode(true);
+  } else {
+    toggleColorMode(false);
+  }
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    text: function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copiada");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copiada");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>
